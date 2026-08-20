@@ -1,0 +1,57 @@
+<!doctype html>
+<html>
+  <body>
+    <style>
+      header {
+        display: grid;
+        grid-template-columns: 1fr auto 1fr;
+        align-items: center;
+      }
+
+      header > nav:last-child {
+        justify-self: end;
+      }
+
+      form {
+        display: flex;
+        align-items: center;
+        gap: 8px;
+      }
+
+      header > nav:last-child {
+        display: flex;
+        gap: 16px;
+      }
+    </style>
+    <header>
+      <nav aria-label="Main navigation">
+        <a href="/home" aria-label="Platform home"> Platform Name </a>
+      </nav>
+      <form role="search" action="/search" method="get">
+        <input
+          type="search"
+          id="site-search"
+          name="user-query"
+          placeholder="Search discussions"
+        />
+        <button type="submit">Search</button>
+      </form>
+      <nav aria aria-label="Account navigation">
+        <a href="/login" class="button">Login</a>
+        <a href="/register" class="button">Register</a>
+      </nav>
+    </header>
+    <main>
+      <section>
+        <h1>Platform Name</h1>
+
+        <p>
+          A place to ask questions, share knowledge, and discuss technology.
+        </p>
+
+        <a href="/topics">Browse Topics</a>
+      </section>
+    </main>
+    <footer>Landing Page</footer>
+  </body>
+</html>
