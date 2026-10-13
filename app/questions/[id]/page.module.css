@@ -1,0 +1,161 @@
+.page {
+  padding: var(--space-8) 0 var(--space-16);
+  max-width: 900px;
+}
+
+.notFound {
+  padding: var(--space-16) 0;
+  text-align: center;
+}
+
+.notFound h2 {
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-2);
+}
+
+.notFound p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.questionHeader {
+  padding: var(--space-8);
+  margin-bottom: var(--space-8);
+}
+
+.metaRow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  margin-bottom: var(--space-4);
+}
+
+.authorGroup {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+
+.authorNameRow {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.authorName {
+  font-weight: 600;
+  font-size: var(--text-sm);
+  color: var(--text-primary);
+}
+
+.questionDate {
+  font-size: 11px;
+  color: var(--text-muted);
+}
+
+.title {
+  font-size: var(--text-2xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  line-height: 1.35;
+  margin-bottom: var(--space-4);
+}
+
+.context {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  margin-bottom: var(--space-6);
+}
+
+.topicsRow {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.topicTag {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 4px 12px;
+  border: 1px solid;
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  font-weight: 500;
+  text-decoration: none;
+  background: var(--bg-surface-2);
+  transition: all var(--transition-fast);
+}
+
+.topicTag:hover {
+  background: var(--bg-surface-3);
+}
+
+.actionBar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  padding: var(--space-4) 0;
+  border-bottom: 1px solid var(--border-subtle);
+  margin-bottom: var(--space-6);
+}
+
+.perspectiveCount h3 {
+  font-size: var(--text-xl);
+  font-weight: 700;
+  color: var(--text-primary);
+}
+
+.subtext {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}
+
+.perspectivesList {
+  display: flex;
+  flex-direction: column;
+}
+
+.relatedSection {
+  margin-top: var(--space-12);
+  padding-top: var(--space-8);
+  border-top: 1px solid var(--border-subtle);
+}
+
+.relatedTitle {
+  font-size: var(--text-lg);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.relatedGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: var(--space-4);
+}
+
+.relatedCard {
+  padding: var(--space-4);
+  text-decoration: none;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: var(--space-3);
+}
+
+.relatedCardTitle {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  line-height: 1.4;
+}
+
+.relatedMeta {
+  font-size: var(--text-xs);
+  color: var(--text-muted);
+}

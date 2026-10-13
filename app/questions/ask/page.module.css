@@ -1,0 +1,242 @@
+.page {
+  padding: var(--space-8) 0 var(--space-16);
+  min-height: 80vh;
+}
+
+.header {
+  margin-bottom: var(--space-6);
+}
+
+.title {
+  font-size: var(--text-3xl);
+  font-weight: 800;
+  color: var(--text-primary);
+  margin-bottom: var(--space-2);
+}
+
+.subtitle {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+}
+
+.layout {
+  display: grid;
+  grid-template-columns: 1fr 320px;
+  gap: var(--space-8);
+  align-items: start;
+}
+
+@media (max-width: 900px) {
+  .layout { grid-template-columns: 1fr; }
+}
+
+.formContainer {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.togglePreview {
+  display: flex;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  padding: 3px;
+  width: fit-content;
+}
+
+.modeBtn {
+  padding: 6px 16px;
+  font-size: var(--text-sm);
+  font-weight: 500;
+  color: var(--text-secondary);
+  border-radius: var(--radius-sm);
+  background: transparent;
+  border: none;
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.modeActive {
+  background: var(--bg-surface-3);
+  color: var(--text-primary);
+}
+
+.typeGrid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: var(--space-3);
+  margin-top: var(--space-2);
+}
+
+.typeOption {
+  padding: var(--space-3) var(--space-4);
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-md);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.typeOption:hover {
+  border-color: var(--border-strong);
+  background: var(--bg-surface-3);
+}
+
+.typeSelected {
+  border-color: var(--color-primary) !important;
+  background: rgba(108, 99, 255, 0.12) !important;
+}
+
+.typeName {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: 2px;
+}
+
+.typeDesc {
+  font-size: 11px;
+  color: var(--text-secondary);
+  line-height: 1.4;
+}
+
+.topicsSelector {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-2);
+}
+
+.topicChip {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  background: var(--bg-surface-2);
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  font-size: var(--text-xs);
+  color: var(--text-secondary);
+  cursor: pointer;
+  transition: all var(--transition-fast);
+}
+
+.topicChip:hover:not(:disabled) {
+  border-color: var(--border-strong);
+  color: var(--text-primary);
+}
+
+.topicChip:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.topicChipActive {
+  background: rgba(108, 99, 255, 0.15) !important;
+  border-color: var(--color-primary) !important;
+  color: var(--color-primary-light) !important;
+}
+
+.formActions {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  margin-top: var(--space-6);
+}
+
+/* Preview styles */
+.previewBox {
+  padding: var(--space-8);
+}
+
+.previewBadge {
+  margin-bottom: var(--space-3);
+}
+
+.previewTitle {
+  font-size: var(--text-2xl);
+  font-weight: 700;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.previewContext {
+  font-size: var(--text-base);
+  color: var(--text-secondary);
+  line-height: 1.7;
+  white-space: pre-wrap;
+  margin-bottom: var(--space-6);
+}
+
+.previewTags {
+  display: flex;
+  gap: var(--space-2);
+  flex-wrap: wrap;
+}
+
+.tagPreview {
+  font-size: var(--text-xs);
+  padding: 4px 12px;
+  border: 1px solid var(--border-default);
+  border-radius: var(--radius-full);
+  color: var(--text-secondary);
+  background: var(--bg-surface-2);
+}
+
+/* Guidelines Sidebar */
+.guideSidebar {
+  position: sticky;
+  top: calc(var(--navbar-height) + var(--space-6));
+}
+
+.guideTitle {
+  font-size: var(--text-base);
+  font-weight: 600;
+  color: var(--text-primary);
+  margin-bottom: var(--space-4);
+}
+
+.guideList {
+  list-style: none;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-3);
+  font-size: var(--text-sm);
+  color: var(--text-secondary);
+  line-height: 1.5;
+}
+
+.guideList li strong {
+  color: var(--text-primary);
+}
+
+/* Auth prompt */
+.authPrompt {
+  padding: var(--space-16) var(--space-4);
+  display: flex;
+  justify-content: center;
+}
+
+.authPromptCard {
+  max-width: 480px;
+  padding: var(--space-8);
+  text-align: center;
+}
+
+.authPromptCard h2 {
+  font-size: var(--text-2xl);
+  margin-bottom: var(--space-2);
+}
+
+.authPromptCard p {
+  color: var(--text-secondary);
+  margin-bottom: var(--space-6);
+}
+
+.authPromptActions {
+  display: flex;
+  gap: var(--space-4);
+  justify-content: center;
+}

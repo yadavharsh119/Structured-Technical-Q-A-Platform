@@ -1,0 +1,48 @@
+.container {
+  position: fixed;
+  bottom: var(--space-6);
+  right: var(--space-6);
+  z-index: 9999;
+}
+
+.toast {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-5);
+  border-radius: var(--radius-md);
+  font-size: var(--text-sm);
+  font-weight: 500;
+  min-width: 260px;
+  box-shadow: var(--shadow-lg);
+  animation: slideUp 0.3s ease;
+}
+
+.icon {
+  font-size: 1rem;
+  width: 20px;
+  text-align: center;
+}
+
+.success {
+  background: rgba(16, 185, 129, 0.12);
+  border: 1px solid #10B981;
+  color: #34D399;
+}
+
+.error {
+  background: rgba(239, 68, 68, 0.12);
+  border: 1px solid #EF4444;
+  color: #F87171;
+}
+
+.info {
+  background: rgba(59, 130, 246, 0.12);
+  border: 1px solid #3B82F6;
+  color: #60A5FA;
+}
+
+@keyframes slideUp {
+  from { opacity: 0; transform: translateY(12px); }
+  to   { opacity: 1; transform: translateY(0); }
+}
