@@ -1,5 +1,6 @@
 // Kysely Database interface definition
-// Table interfaces for migration 002_auth_core (see database/migrations/002_auth_core.sql)
+// Table interfaces for migrations 002_auth_core, 003_content_core and
+// 004_votes_moderation (see database/migrations/)
 
 import type { Generated } from 'kysely';
 
@@ -99,6 +100,176 @@ export interface AuditLogsTable {
   metadata: Generated<Record<string, unknown>>;
 }
 
+// Enums (mirror the PostgreSQL types created in 003_content_core.sql)
+export type QuestionStatus = 'pending' | 'approved' | 'rejected';
+export type TopicStatus = 'published' | 'archived' | 'hidden';
+export type PerspectiveStatus = 'visible' | 'hidden' | 'deleted';
+
+export interface CategoriesTable {
+  id: Generated<string>;
+  name: string;
+  description: string | null;
+  parent_id: string | null;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface TagsTable {
+  id: Generated<string>;
+  name: string;
+  is_active: Generated<boolean>;
+  created_at: Generated<Date>;
+}
+
+export interface QuestionsTable {
+  id: Generated<string>;
+  author_id: string;
+  title: string;
+  description: string;
+  category_id: string;
+  tech_stack: string | null;
+  status: Generated<QuestionStatus>;
+  rejection_reason: string | null;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  flagged: Generated<boolean>;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+}
+
+export interface QuestionTagsTable {
+  question_id: string;
+  tag_id: string;
+}
+
+export interface TopicsTable {
+  id: Generated<string>;
+  title: string;
+  slug: string;
+  description: string;
+  category_id: string;
+  is_curated: Generated<boolean>;
+  status: Generated<TopicStatus>;
+  created_by: string;
+  merged_into_topic_id: string | null;
+  created_at: Generated<Date>;
+  updated_at: Generated<Date>;
+  // generated tsvector column (GENERATED ALWAYS ... STORED)
+  search_vector: Generated<string>;
+}
+
+export interface TopicTagsTable {
+  topic_id: string;
+  tag_id: string;
+}
+
+export interface TopicQuestionsTable {
+  question_id: string;
+  topic_id: string;
+  linked_at: Generated<Date>;
+}
+
+export interface TopicSlugRedirectsTable {
+  old_slug: string;
+  topic_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface PerspectivesTable {
+  id: Generated<string>;
+  topic_id: string;
+  author_id: string;
+  proposed_solution: string;
+  explanation: string;
+  advantages: string[];
+  limitations: string[];
+  code_snippets: Generated<Record<string, unknown>[]>;
+  reference_urls: Generated<string[]>;
+  status: Generated<PerspectiveStatus>;
+  flagged: Generated<boolean>;
+  deleted_at: Date | null;
+  created_at: Generated<Date>;
+  // generated tsvector column (GENERATED ALWAYS ... STORED)
+  search_vector: Generated<string>;
+}
+
+export interface AttachmentsTable {
+  id: Generated<string>;
+  uploader_id: string;
+  question_id: string | null;
+  perspective_id: string | null;
+  original_name: string;
+  stored_path: string;
+  mime_type: string;
+  size_bytes: number;
+  created_at: Generated<Date>;
+}
+
+// Enums (mirror the PostgreSQL types created in 004_votes_moderation.sql)
+export type RequestStatus = 'pending' | 'approved' | 'rejected';
+export type ReportStatus = 'open' | 'under_review' | 'resolved' | 'dismissed';
+export type ReportReason = 'spam' | 'offensive' | 'duplicate' | 'misleading' | 'plagiarism' | 'other';
+export type ReportTargetType = 'topic' | 'perspective';
+export type UserActionType = 'warning' | 'suspend' | 'ban' | 'restore';
+
+export interface PerspectiveVotesTable {
+  user_id: string;
+  perspective_id: string;
+  created_at: Generated<Date>;
+}
+
+export interface PerspectiveDeletionRequestsTable {
+  id: Generated<string>;
+  perspective_id: string;
+  requested_by: string;
+  reason: string;
+  status: Generated<RequestStatus>;
+  reviewed_by: string | null;
+  reviewed_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface ReportsTable {
+  id: Generated<string>;
+  reporter_id: string;
+  target_type: ReportTargetType;
+  target_id: string;
+  reason: ReportReason;
+  comments: string | null;
+  status: Generated<ReportStatus>;
+  handled_by: string | null;
+  handled_at: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface UserActionsTable {
+  id: Generated<string>;
+  user_id: string;
+  admin_id: string;
+  action_type: UserActionType;
+  reason: string;
+  suspended_until: Date | null;
+  created_at: Generated<Date>;
+}
+
+export interface ExpertFingerprintsTable {
+  user_id: string;
+  category_id: string;
+  perspective_count: Generated<number>;
+  upvote_total: Generated<number>;
+  // numeric: node-postgres returns numeric values as strings
+  score: Generated<string>;
+  calculated_at: Generated<Date>;
+}
+
+export interface SystemSettingsTable {
+  key: string;
+  value: Record<string, unknown>;
+  updated_by: string | null;
+  updated_at: Generated<Date>;
+}
+
 export interface Database {
   _migrations: MigrationTable;
   users: UsersTable;
@@ -108,5 +279,21 @@ export interface Database {
   password_reset_tokens: PasswordResetTokensTable;
   login_attempts: LoginAttemptsTable;
   audit_logs: AuditLogsTable;
+  categories: CategoriesTable;
+  tags: TagsTable;
+  questions: QuestionsTable;
+  question_tags: QuestionTagsTable;
+  topics: TopicsTable;
+  topic_tags: TopicTagsTable;
+  topic_questions: TopicQuestionsTable;
+  topic_slug_redirects: TopicSlugRedirectsTable;
+  perspectives: PerspectivesTable;
+  attachments: AttachmentsTable;
+  perspective_votes: PerspectiveVotesTable;
+  perspective_deletion_requests: PerspectiveDeletionRequestsTable;
+  reports: ReportsTable;
+  user_actions: UserActionsTable;
+  expert_fingerprints: ExpertFingerprintsTable;
+  system_settings: SystemSettingsTable;
 }
 
