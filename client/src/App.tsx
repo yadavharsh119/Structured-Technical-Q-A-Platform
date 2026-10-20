@@ -1,217 +1,62 @@
-import { useEffect, useState } from 'react';
-import { HealthCheckData } from '@structured-qa/shared';
-import { fetchHealth } from './services/api';
-import { Activity, Database, Server, CheckCircle2, AlertCircle, RefreshCw } from 'lucide-react';
+import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
+import { Navbar } from './components/Navbar';
+import { ProtectedRoute } from './components/ProtectedRoute';
+import { AuthProvider } from './context/AuthContext';
+import HomePage from './pages/HomePage';
+import { LoginPage } from './pages/LoginPage';
+import { RegisterPage } from './pages/RegisterPage';
+import { ReviewPage } from './pages/ReviewPage';
+import { VerifyEmailPage } from './pages/VerifyEmailPage';
+
+function NotFound() {
+  return (
+    <div className="py-16 text-center" data-testid="not-found">
+      <h1 className="text-2xl font-bold text-slate-900">Page not found</h1>
+      <p className="mt-2 text-sm text-slate-500">
+        The page you are looking for does not exist.
+      </p>
+      <Link
+        to="/"
+        data-testid="link-notfound-home"
+        className="mt-4 inline-block text-sm font-medium text-primary-700 hover:underline"
+      >
+        Back to home
+      </Link>
+    </div>
+  );
+}
 
 export function App() {
-  const [health, setHealth] = useState<HealthCheckData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-
-  const checkStatus = async () => {
-    setLoading(true);
-    setError(null);
-    const response = await fetchHealth();
-    if (response.success) {
-      setHealth(response.data);
-    } else {
-      setError(response.error.message);
-      setHealth(null);
-    }
-    setLoading(false);
-  };
-
-  useEffect(() => {
-    checkStatus();
-  }, []);
-
   return (
-    <div className="min-h-screen flex flex-col bg-slate-50">
-      {/* Header */}
-      <header className="border-b border-slate-200 bg-white">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 h-16 flex items-center justify-between">
-          <div className="flex items-center space-x-3">
-            <div className="w-8 h-8 rounded-lg bg-sky-600 flex items-center justify-center text-white font-bold text-lg shadow-sm">
-              Q
+    <BrowserRouter>
+      <AuthProvider>
+        <div className="flex min-h-screen flex-col bg-slate-50">
+          <Navbar />
+          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
+            <Routes>
+              <Route path="/" element={<HomePage />} />
+              <Route path="/login" element={<LoginPage />} />
+              <Route path="/register" element={<RegisterPage />} />
+              <Route path="/verify-email" element={<VerifyEmailPage />} />
+              <Route
+                path="/review"
+                element={
+                  <ProtectedRoute>
+                    <ReviewPage />
+                  </ProtectedRoute>
+                }
+              />
+              <Route path="*" element={<NotFound />} />
+            </Routes>
+          </main>
+          <footer className="mt-auto border-t border-slate-200 bg-white py-4">
+            <div className="mx-auto max-w-6xl px-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8">
+              Structured Technical Q&amp;A Platform &copy; 2026
             </div>
-            <div>
-              <h1 className="text-lg font-semibold text-slate-900 leading-tight">
-                Structured Technical Q&amp;A
-              </h1>
-              <p className="text-xs text-slate-500">Platform Foundation — Phase 1</p>
-            </div>
-          </div>
-          <div className="flex items-center space-x-2">
-            <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-emerald-100 text-emerald-800">
-              Phase 1 Active
-            </span>
-          </div>
+          </footer>
         </div>
-      </header>
-
-      {/* Main Content */}
-      <main className="flex-1 max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8 w-full">
-        <div className="space-y-6">
-          {/* Welcome Banner */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-slate-900">
-              Platform Foundation &amp; Scaffolding
-            </h2>
-            <p className="mt-1 text-sm text-slate-600 max-w-3xl">
-              Phase 1 establishes the monorepo architecture with npm workspaces, PostgreSQL
-              development environment, Kysely query layer, migration infrastructure, and shared
-              TypeScript types.
-            </p>
-          </div>
-
-          {/* Health Status Dashboard */}
-          <div className="bg-white rounded-xl border border-slate-200 p-6 shadow-sm">
-            <div className="flex items-center justify-between pb-4 border-b border-slate-100">
-              <div className="flex items-center space-x-2">
-                <Activity className="w-5 h-5 text-sky-600" />
-                <h3 className="text-base font-semibold text-slate-900">System Health Monitor</h3>
-              </div>
-              <button
-                onClick={checkStatus}
-                disabled={loading}
-                className="inline-flex items-center px-3 py-1.5 text-xs font-medium rounded-md text-slate-700 bg-slate-100 hover:bg-slate-200 disabled:opacity-50 transition-colors"
-              >
-                <RefreshCw className={`w-3.5 h-3.5 mr-1.5 ${loading ? 'animate-spin' : ''}`} />
-                Refresh
-              </button>
-            </div>
-
-            {loading ? (
-              <div className="py-12 flex flex-col items-center justify-center text-slate-500">
-                <RefreshCw className="w-8 h-8 animate-spin text-sky-600 mb-2" />
-                <p className="text-sm">Connecting to backend health check...</p>
-              </div>
-            ) : error ? (
-              <div className="py-8">
-                <div className="p-4 rounded-lg bg-rose-50 border border-rose-200 flex items-start space-x-3">
-                  <AlertCircle className="w-5 h-5 text-rose-600 flex-shrink-0 mt-0.5" />
-                  <div>
-                    <h4 className="text-sm font-semibold text-rose-800">Backend Unreachable</h4>
-                    <p className="text-xs text-rose-700 mt-1">{error}</p>
-                    <p className="text-xs text-slate-500 mt-2">
-                      Ensure the server is running on port 5000 (`npm run dev:server`).
-                    </p>
-                  </div>
-                </div>
-              </div>
-            ) : health ? (
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mt-6">
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">API Status</span>
-                    <Server className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <div className="mt-2 flex items-center space-x-2">
-                    <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                    <span className="text-lg font-bold text-slate-900 capitalize">
-                      {health.status}
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-500 mt-1 block">
-                    Uptime: {health.uptimeSeconds}s
-                  </span>
-                </div>
-
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Database</span>
-                    <Database className="w-4 h-4 text-slate-400" />
-                  </div>
-                  <div className="mt-2 flex items-center space-x-2">
-                    {health.database.connected ? (
-                      <>
-                        <CheckCircle2 className="w-5 h-5 text-emerald-600" />
-                        <span className="text-lg font-bold text-slate-900">Connected</span>
-                      </>
-                    ) : (
-                      <>
-                        <AlertCircle className="w-5 h-5 text-amber-600" />
-                        <span className="text-lg font-bold text-slate-900">Degraded</span>
-                      </>
-                    )}
-                  </div>
-                  <span className="text-xs text-slate-500 mt-1 block">
-                    {health.database.connected
-                      ? `Latency: ${health.database.latencyMs}ms`
-                      : 'PostgreSQL not started'}
-                  </span>
-                </div>
-
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Environment</span>
-                    <span className="text-xs font-mono text-slate-400 uppercase">
-                      {health.environment}
-                    </span>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-lg font-bold text-slate-900">Node.js LTS</span>
-                  </div>
-                  <span className="text-xs text-slate-500 mt-1 block">Port 5000 / Proxy 3000</span>
-                </div>
-
-                <div className="p-4 rounded-lg bg-slate-50 border border-slate-200">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-medium text-slate-500">Last Verified</span>
-                    <span className="text-xs text-slate-400 font-mono">UTC</span>
-                  </div>
-                  <div className="mt-2">
-                    <span className="text-sm font-semibold text-slate-900">
-                      {new Date(health.timestamp).toLocaleTimeString()}
-                    </span>
-                  </div>
-                  <span className="text-xs text-slate-500 mt-1 block">
-                    {new Date(health.timestamp).toLocaleDateString()}
-                  </span>
-                </div>
-              </div>
-            ) : null}
-          </div>
-
-          {/* Architecture Stack Summary */}
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h4 className="text-sm font-semibold text-slate-900">Frontend Architecture</h4>
-              <ul className="mt-3 space-y-2 text-xs text-slate-600">
-                <li>• React 18 + Vite + TypeScript</li>
-                <li>• Tailwind CSS for responsive styling</li>
-                <li>• Centralized API client</li>
-              </ul>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h4 className="text-sm font-semibold text-slate-900">Backend Architecture</h4>
-              <ul className="mt-3 space-y-2 text-xs text-slate-600">
-                <li>• Express 4.x + TypeScript</li>
-                <li>• Controller → Service → Repository (QA-01)</li>
-                <li>• Structured error &amp; logging pipeline</li>
-              </ul>
-            </div>
-
-            <div className="bg-white rounded-xl border border-slate-200 p-5 shadow-sm">
-              <h4 className="text-sm font-semibold text-slate-900">Data Architecture</h4>
-              <ul className="mt-3 space-y-2 text-xs text-slate-600">
-                <li>• PostgreSQL 16 via docker-compose</li>
-                <li>• Kysely type-safe query builder</li>
-                <li>• Transactional SQL migrations runner</li>
-              </ul>
-            </div>
-          </div>
-        </div>
-      </main>
-
-      {/* Footer */}
-      <footer className="border-t border-slate-200 bg-white py-4 mt-auto">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 text-center text-xs text-slate-500">
-          Structured Technical Q&amp;A Platform &copy; 2026 — Phase 1 Scaffolding
-        </div>
-      </footer>
-    </div>
+      </AuthProvider>
+    </BrowserRouter>
   );
 }
 
