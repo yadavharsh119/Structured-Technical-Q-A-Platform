@@ -1,204 +1,214 @@
 'use client';
-
 import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { storage, generateId, mockDelay, sortByRecent, sortByTrending } from '@/lib/utils';
-import {
-  SEED_QUESTIONS, SEED_PERSPECTIVES, SEED_TOPICS, SEED_VOTES,
-} from '@/lib/seed';
+import { useAuth } from './AuthContext';
 
 const DataContext = createContext(null);
 
-const QUESTIONS_KEY    = 'dp_questions';
-const PERSPECTIVES_KEY = 'dp_perspectives';
-const TOPICS_KEY       = 'dp_topics';
-const VOTES_KEY        = 'dp_votes';
-const SEEDED_KEY       = 'dp_seeded';
-
-function initData() {
-  if (!storage.get(SEEDED_KEY)) {
-    storage.set(QUESTIONS_KEY,    SEED_QUESTIONS);
-    storage.set(PERSPECTIVES_KEY, SEED_PERSPECTIVES);
-    storage.set(TOPICS_KEY,       SEED_TOPICS);
-    storage.set(VOTES_KEY,        SEED_VOTES);
-    storage.set(SEEDED_KEY,       true);
-  }
-}
-
 export function DataProvider({ children }) {
-  const [questions,    setQuestions]    = useState([]);
+  const { user, showToast } = useAuth();
+  const [questions, setQuestions] = useState([]);
   const [perspectives, setPerspectives] = useState([]);
-  const [topics,       setTopics]       = useState([]);
-  const [votes,        setVotes]        = useState([]);
-  const [loading,      setLoading]      = useState(true);
+  const [topics, setTopics] = useState([]);
+  const [votes, setVotes] = useState([]);
+  const [loading, setLoading] = useState(true);
 
-  useEffect(() => {
-    initData();
-    setQuestions(   storage.get(QUESTIONS_KEY,    []));
-    setPerspectives(storage.get(PERSPECTIVES_KEY, []));
-    setTopics(      storage.get(TOPICS_KEY,       []));
-    setVotes(       storage.get(VOTES_KEY,        []));
-    setLoading(false);
+  const refreshAllData = useCallback(async () => {
+    try {
+      const [qRes, tRes, pRes, vRes] = await Promise.all([
+        fetch('/api/questions'),
+        fetch('/api/topics'),
+        fetch('/api/perspectives'),
+        fetch('/api/votes')
+      ]);
+
+      if (qRes.ok) {
+        const qData = await qRes.json();
+        setQuestions(qData.questions || []);
+      }
+      if (tRes.ok) {
+        const tData = await tRes.json();
+        setTopics(tData.topics || []);
+      }
+      if (pRes.ok) {
+        const pData = await pRes.json();
+        setPerspectives(pData.perspectives || []);
+      }
+      if (vRes.ok) {
+        const vData = await vRes.json();
+        setVotes(vData.votes || []);
+      }
+    } catch (err) {
+      console.error('Error loading data from backend:', err);
+    } finally {
+      setLoading(false);
+    }
   }, []);
 
-  // ── Persist helpers ──────────────────────────────────────────
-  function persist(key, setter, value) {
-    storage.set(key, value);
-    setter(value);
-  }
+  useEffect(() => {
+    refreshAllData();
+  }, [refreshAllData]);
 
-  // ── Topics ───────────────────────────────────────────────────
-  const getTopics = useCallback(() => topics, [topics]);
+  const getQuestions = ({ topicSlug, search, sort = 'recent', authorId } = {}) => {
+    let result = [...questions];
 
-  const getTopicBySlug = useCallback((slug) =>
-    topics.find(t => t.slug === slug) || null,
-  [topics]);
-
-  // ── Questions ─────────────────────────────────────────────────
-  const getQuestions = useCallback((opts = {}) => {
-    let list = [...questions];
-    if (opts.topicSlug) list = list.filter(q => q.topics?.includes(opts.topicSlug));
-    if (opts.authorId)  list = list.filter(q => q.authorId === opts.authorId);
-    if (opts.search) {
-      const q = opts.search.toLowerCase();
-      list = list.filter(item =>
-        item.title.toLowerCase().includes(q) || item.context.toLowerCase().includes(q)
+    if (authorId) {
+      result = result.filter(q => q.authorId === authorId);
+    }
+    if (topicSlug) {
+      result = result.filter(q => q.topics?.includes(topicSlug));
+    }
+    if (search && search.trim()) {
+      const q = search.toLowerCase();
+      result = result.filter(item =>
+        item.title.toLowerCase().includes(q) ||
+        item.context.toLowerCase().includes(q) ||
+        item.topics.some(t => t.toLowerCase().includes(q))
       );
     }
-    if (opts.sort === 'trending') return sortByTrending(list);
-    return sortByRecent(list);
-  }, [questions]);
 
-  const getQuestionById = useCallback((id) =>
-    questions.find(q => q.id === id) || null,
-  [questions]);
-
-  const createQuestion = useCallback(async (data, authorId) => {
-    await mockDelay(400);
-    const newQ = {
-      id: generateId('q'),
-      authorId,
-      title: data.title.trim(),
-      context: data.context.trim(),
-      topics: data.topics,
-      type: data.type,
-      perspectiveCount: 0,
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString(),
-      isAnswered: false,
-    };
-    const updated = [newQ, ...questions];
-    persist(QUESTIONS_KEY, setQuestions, updated);
-    return newQ;
-  }, [questions]);
-
-  // ── Perspectives ──────────────────────────────────────────────
-  const getPerspectivesForQuestion = useCallback((questionId) =>
-    perspectives
-      .filter(p => p.questionId === questionId)
-      .sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0)),
-  [perspectives]);
-
-  const getUserPerspective = useCallback((questionId, userId) =>
-    perspectives.find(p => p.questionId === questionId && p.authorId === userId) || null,
-  [perspectives]);
-
-  const getPerspectivesByUser = useCallback((userId) =>
-    perspectives.filter(p => p.authorId === userId),
-  [perspectives]);
-
-  const createPerspective = useCallback(async (questionId, data, authorId) => {
-    await mockDelay(500);
-
-    const already = perspectives.find(p => p.questionId === questionId && p.authorId === authorId);
-    if (already) throw new Error('You have already shared a perspective on this question');
-
-    const newP = {
-      id: generateId('p'),
-      questionId,
-      authorId,
-      background:    data.background.trim(),
-      experience:    data.experience.trim(),
-      whatWorked:    data.whatWorked.trim(),
-      whatDidntWork: data.whatDidntWork.trim(),
-      advice:        data.advice.trim(),
-      upvotes: 0,
-      createdAt: new Date().toISOString(),
-    };
-
-    const updatedP = [...perspectives, newP];
-    persist(PERSPECTIVES_KEY, setPerspectives, updatedP);
-
-    // Increment perspectiveCount on the question
-    const updatedQ = questions.map(q =>
-      q.id === questionId
-        ? { ...q, perspectiveCount: (q.perspectiveCount || 0) + 1, updatedAt: new Date().toISOString() }
-        : q
-    );
-    persist(QUESTIONS_KEY, setQuestions, updatedQ);
-
-    return newP;
-  }, [perspectives, questions]);
-
-  // ── Votes ─────────────────────────────────────────────────────
-  const hasVoted = useCallback((perspectiveId, userId) =>
-    votes.some(v => v.perspectiveId === perspectiveId && v.userId === userId),
-  [votes]);
-
-  const toggleVote = useCallback(async (perspectiveId, userId) => {
-    await mockDelay(150);
-    const alreadyVoted = votes.some(v => v.perspectiveId === perspectiveId && v.userId === userId);
-
-    let updatedVotes;
-    let delta;
-
-    if (alreadyVoted) {
-      updatedVotes = votes.filter(v => !(v.perspectiveId === perspectiveId && v.userId === userId));
-      delta = -1;
+    if (sort === 'trending') {
+      result.sort((a, b) => (b.perspectiveCount || 0) - (a.perspectiveCount || 0));
     } else {
-      updatedVotes = [...votes, { perspectiveId, userId }];
-      delta = 1;
+      result.sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
     }
 
-    persist(VOTES_KEY, setVotes, updatedVotes);
+    return result;
+  };
 
-    const updatedP = perspectives.map(p =>
-      p.id === perspectiveId
-        ? { ...p, upvotes: Math.max(0, (p.upvotes || 0) + delta) }
-        : p
+  const getQuestionById = (id) => {
+    return questions.find(q => q.id === id) || null;
+  };
+
+  const createQuestion = async (formData, authorId) => {
+    const res = await fetch('/api/questions', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ ...formData, authorId }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to create question');
+    }
+
+    await refreshAllData();
+    return data.question;
+  };
+
+  const getPerspectivesForQuestion = (questionId) => {
+    return perspectives
+      .filter(p => p.questionId === questionId)
+      .sort((a, b) => (b.upvotes || 0) - (a.upvotes || 0));
+  };
+
+  const getPerspectivesByUser = (authorId) => {
+    return perspectives
+      .filter(p => p.authorId === authorId)
+      .sort((a, b) => new Date(b.createdAt) - new Date(a.createdAt));
+  };
+
+  const getUserPerspective = (questionId, authorId) => {
+    return perspectives.find(p => p.questionId === questionId && p.authorId === authorId) || null;
+  };
+
+  const createPerspective = async (questionId, formData, authorId) => {
+    const res = await fetch('/api/perspectives', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ questionId, authorId, ...formData }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Failed to submit perspective');
+    }
+
+    await refreshAllData();
+    return data.perspective;
+  };
+
+  const toggleVote = async (perspectiveId, authorId) => {
+    if (!user) {
+      showToast('Please sign in to upvote perspectives', 'info');
+      return { hasVoted: false, upvotes: 0 };
+    }
+
+    if (authorId === user.id) {
+      showToast('You cannot upvote your own perspective', 'error');
+      return { hasVoted: false, upvotes: 0 };
+    }
+
+    const res = await fetch('/api/votes', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ perspectiveId, userId: user.id }),
+    });
+
+    const data = await res.json();
+    if (!res.ok) {
+      showToast(data.message || 'Vote action failed', 'error');
+      return { hasVoted: false, upvotes: 0 };
+    }
+
+    // Refresh memory states
+    setVotes(prev => {
+      const exists = prev.some(v => v.perspectiveId === perspectiveId && v.userId === user.id);
+      if (exists) {
+        return prev.filter(v => !(v.perspectiveId === perspectiveId && v.userId === user.id));
+      } else {
+        return [...prev, { perspectiveId, userId: user.id }];
+      }
+    });
+
+    setPerspectives(prev =>
+      prev.map(p => p.id === perspectiveId ? { ...p, upvotes: data.upvotes } : p)
     );
-    persist(PERSPECTIVES_KEY, setPerspectives, updatedP);
 
-    return !alreadyVoted; // returns new state (true = voted)
-  }, [votes, perspectives]);
+    return data;
+  };
 
-  // ── Stats ────────────────────────────────────────────────────
-  const getStats = useCallback(() => ({
-    totalQuestions:    questions.length,
-    totalPerspectives: perspectives.length,
-    totalTopics:       topics.length,
-    totalVotes:        votes.length,
-  }), [questions, perspectives, topics, votes]);
+  const hasVoted = (perspectiveId, userId) => {
+    if (!userId) return false;
+    return votes.some(v => v.perspectiveId === perspectiveId && v.userId === userId);
+  };
+
+  const getTopics = () => topics;
+
+  const getTopicBySlug = (slug) => {
+    return topics.find(t => t.slug === slug) || null;
+  };
+
+  const getStats = () => {
+    return {
+      totalQuestions: questions.length,
+      totalPerspectives: perspectives.length,
+      totalVotes: perspectives.reduce((acc, p) => acc + (p.upvotes || 0), 0),
+    };
+  };
 
   return (
-    <DataContext.Provider value={{
-      loading,
-      questions,
-      perspectives,
-      topics,
-      votes,
-      getTopics,
-      getTopicBySlug,
-      getQuestions,
-      getQuestionById,
-      createQuestion,
-      getPerspectivesForQuestion,
-      getUserPerspective,
-      getPerspectivesByUser,
-      createPerspective,
-      hasVoted,
-      toggleVote,
-      getStats,
-    }}>
+    <DataContext.Provider
+      value={{
+        questions,
+        perspectives,
+        topics,
+        votes,
+        loading,
+        getQuestions,
+        getQuestionById,
+        createQuestion,
+        getPerspectivesForQuestion,
+        getPerspectivesByUser,
+        getUserPerspective,
+        createPerspective,
+        toggleVote,
+        hasVoted,
+        getTopics,
+        getTopicBySlug,
+        getStats,
+        refreshAllData,
+      }}
+    >
       {children}
     </DataContext.Provider>
   );

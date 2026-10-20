@@ -1,140 +1,133 @@
 'use client';
-
-import { createContext, useContext, useState, useEffect, useCallback } from 'react';
-import { storage, generateId, mockDelay } from '@/lib/utils';
-import { SEED_USERS } from '@/lib/seed';
+import { createContext, useContext, useState, useEffect } from 'react';
 
 const AuthContext = createContext(null);
-
-const STORAGE_KEY = 'dp_auth';
-const USERS_KEY   = 'dp_users';
-
-function initUsers() {
-  const existing = storage.get(USERS_KEY);
-  if (!existing) {
-    storage.set(USERS_KEY, SEED_USERS);
-    return SEED_USERS;
-  }
-  return existing;
-}
+const AUTH_KEY = 'dp_auth_user';
 
 export function AuthProvider({ children }) {
-  const [user, setUser]       = useState(null);
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
-  const [toast, setToast]     = useState(null);
+  const [toast, setToast] = useState(null);
+  const [allUsers, setAllUsers] = useState([]);
 
-  // Restore session on mount
-  useEffect(() => {
-    initUsers();
-    const saved = storage.get(STORAGE_KEY);
-    if (saved) {
-      // Re-fetch fresh user data from users store
-      const users = storage.get(USERS_KEY, []);
-      const fresh = users.find(u => u.id === saved.id);
-      if (fresh) setUser(fresh);
-    }
-    setLoading(false);
-  }, []);
-
-  const showToast = useCallback((message, type = 'info') => {
+  const showToast = (message, type = 'info') => {
     setToast({ message, type });
     setTimeout(() => setToast(null), 3500);
+  };
+
+  const fetchUsers = async () => {
+    try {
+      const res = await fetch('/api/users');
+      if (res.ok) {
+        const data = await res.json();
+        setAllUsers(data.users || []);
+      }
+    } catch (e) {
+      console.error('Error fetching users:', e);
+    }
+  };
+
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(AUTH_KEY);
+      if (stored) {
+        setUser(JSON.parse(stored));
+      }
+    } catch (e) {
+      console.error('Failed reading session:', e);
+    } finally {
+      setLoading(false);
+      fetchUsers();
+    }
   }, []);
 
-  const login = useCallback(async (email, password) => {
-    await mockDelay(400);
-    const users = storage.get(USERS_KEY, []);
-    const found = users.find(u => u.email.toLowerCase() === email.toLowerCase() && u.password === password);
-    if (!found) {
-      throw new Error('Invalid email or password');
-    }
-    const { password: _pw, ...safeUser } = found;
-    setUser(found);
-    storage.set(STORAGE_KEY, { id: found.id });
-    return found;
-  }, []);
+  const login = async (email, password) => {
+    const res = await fetch('/api/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ email, password }),
+    });
 
-  const register = useCallback(async (formData) => {
-    await mockDelay(500);
-    const users = storage.get(USERS_KEY, []);
-
-    if (users.find(u => u.email.toLowerCase() === formData.email.toLowerCase())) {
-      throw new Error('An account with this email already exists');
-    }
-    if (users.find(u => u.username.toLowerCase() === formData.username.toLowerCase())) {
-      throw new Error('This username is already taken');
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Login failed');
     }
 
-    const AVATAR_COLORS = ['#6C63FF', '#00D9FF', '#10B981', '#F59E0B', '#EF4444', '#EC4899', '#8B5CF6'];
-    const colorIdx = users.length % AVATAR_COLORS.length;
+    setUser(data.user);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(data.user));
+    await fetchUsers();
+    return data.user;
+  };
 
-    const newUser = {
-      id: generateId('u'),
-      username: formData.username.trim(),
-      name: formData.name.trim(),
-      email: formData.email.trim().toLowerCase(),
-      password: formData.password,
-      bio: formData.bio ? formData.bio.trim() : '',
-      avatarColor: AVATAR_COLORS[colorIdx],
-      avatarInitials: formData.name.trim().split(' ').map(p => p[0]).join('').toUpperCase().slice(0, 2),
-      experienceLevel: formData.experienceLevel || 'Junior',
-      yearsExp: Number(formData.yearsExp) || 0,
-      skills: formData.skills || [],
-      joinedAt: new Date().toISOString(),
-      questionsCount: 0,
-      perspectivesCount: 0,
-      votesReceived: 0,
-    };
+  const register = async (formData) => {
+    const res = await fetch('/api/auth/register', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(formData),
+    });
 
-    const updated = [...users, newUser];
-    storage.set(USERS_KEY, updated);
-    setUser(newUser);
-    storage.set(STORAGE_KEY, { id: newUser.id });
-    return newUser;
-  }, []);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Registration failed');
+    }
 
-  const logout = useCallback(() => {
+    setUser(data.user);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(data.user));
+    await fetchUsers();
+    return data.user;
+  };
+
+  const logout = () => {
     setUser(null);
-    storage.remove(STORAGE_KEY);
-  }, []);
+    localStorage.removeItem(AUTH_KEY);
+    showToast('Signed out successfully', 'info');
+  };
 
-  const updateProfile = useCallback(async (updates) => {
-    await mockDelay(300);
-    const users = storage.get(USERS_KEY, []);
-    const idx = users.findIndex(u => u.id === user.id);
-    if (idx === -1) throw new Error('User not found');
+  const updateProfile = async (updates) => {
+    if (!user) throw new Error('Not authenticated');
 
-    const updated = { ...users[idx], ...updates };
-    users[idx] = updated;
-    storage.set(USERS_KEY, users);
-    setUser(updated);
-    return updated;
-  }, [user]);
+    const res = await fetch('/api/auth/profile', {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ userId: user.id, ...updates }),
+    });
 
-  const getUserById = useCallback((id) => {
-    const users = storage.get(USERS_KEY, []);
-    return users.find(u => u.id === id) || null;
-  }, []);
+    const data = await res.json();
+    if (!res.ok) {
+      throw new Error(data.message || 'Profile update failed');
+    }
 
-  const getUserByUsername = useCallback((username) => {
-    const users = storage.get(USERS_KEY, []);
-    return users.find(u => u.username.toLowerCase() === username.toLowerCase()) || null;
-  }, []);
+    setUser(data.user);
+    localStorage.setItem(AUTH_KEY, JSON.stringify(data.user));
+    await fetchUsers();
+    return data.user;
+  };
+
+  const getUserById = (id) => {
+    return allUsers.find(u => u.id === id) || (user?.id === id ? user : null);
+  };
+
+  const getUserByUsername = (username) => {
+    return allUsers.find(u => u.username?.toLowerCase() === username?.toLowerCase()) || 
+      (user?.username?.toLowerCase() === username?.toLowerCase() ? user : null);
+  };
 
   return (
-    <AuthContext.Provider value={{
-      user,
-      loading,
-      isAuthenticated: !!user,
-      login,
-      register,
-      logout,
-      updateProfile,
-      getUserById,
-      getUserByUsername,
-      showToast,
-      toast,
-    }}>
+    <AuthContext.Provider
+      value={{
+        user,
+        loading,
+        toast,
+        isAuthenticated: !!user,
+        login,
+        register,
+        logout,
+        updateProfile,
+        getUserById,
+        getUserByUsername,
+        showToast,
+      }}
+    >
       {children}
     </AuthContext.Provider>
   );
