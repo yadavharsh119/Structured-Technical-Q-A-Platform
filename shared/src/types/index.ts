@@ -32,4 +32,26 @@ export interface HealthCheckData {
 
 export type HealthCheckResponse = ApiResponse<HealthCheckData>;
 
+export const REPORT_REASONS = [
+  'Spam',
+  'Offensive/Abusive',
+  'Duplicate',
+  'Misleading/Incorrect',
+  'Plagiarism',
+  'Other',
+] as const;
+
+export type ReportReason = (typeof REPORT_REASONS)[number];
+
+export interface ReportPerspectivePayload {
+  perspectiveId: string;
+  reason: ReportReason;
+  details?: string;
+}
+
+export interface ReportPerspectiveResult {
+  reportId: string;
+  status: 'received';
+}
+
 export { UserRole, UserStatus, ApiErrorCode };

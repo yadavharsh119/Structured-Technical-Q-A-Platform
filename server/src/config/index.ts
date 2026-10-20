@@ -19,6 +19,16 @@ const envSchema = z.object({
   DB_PASSWORD: z.string().default('postgrespassword'),
   DB_NAME: z.string().default('structured_qa'),
   SESSION_SECRET: z.string().default('dev_session_secret_change_in_production_32chars_min'),
+  SESSION_TTL_MINUTES: z.coerce.number().int().positive().default(60),
+  APP_BASE_URL: z.string().default('http://localhost:3000'),
+  // Set COOKIE_SECURE=true in production (behind HTTPS)
+  COOKIE_SECURE: z
+    .string()
+    .optional()
+    .transform((value) => {
+      if (value !== undefined) return value === 'true';
+      return process.env.NODE_ENV === 'production';
+    }),
 });
 
 const parsed = envSchema.safeParse(process.env);

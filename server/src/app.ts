@@ -1,9 +1,11 @@
 import express, { Request, Response } from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import apiRoutes from './routes';
 import { requestLogger } from './middleware/requestLogger';
 import { errorHandler, AppError } from './middleware/errorHandler';
+import { attachSession } from './middleware/auth';
 import { ApiErrorCode } from '@structured-qa/shared';
 import { config } from './config';
 
@@ -25,8 +27,14 @@ export function createApp(): express.Application {
   app.use(express.json({ limit: '1mb' }));
   app.use(express.urlencoded({ extended: true, limit: '1mb' }));
 
+  // Cookies (SEC-05: session cookie parsing)
+  app.use(cookieParser());
+
   // Logging Middleware (QA-04)
   app.use(requestLogger);
+
+  // Session attachment (never throws; leaves req.auth undefined when absent)
+  app.use(attachSession);
 
   // API Routes
   app.use('/api', apiRoutes);
