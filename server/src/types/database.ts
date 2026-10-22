@@ -133,6 +133,7 @@ export interface QuestionsTable {
   rejection_reason: string | null;
   reviewed_by: string | null;
   reviewed_at: Date | null;
+  topic_id: string | null;
   flagged: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;

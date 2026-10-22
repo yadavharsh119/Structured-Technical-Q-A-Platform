@@ -183,3 +183,8 @@ export const resetPasswordSchema = z
   });
 export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 
+// Questions, review queue and question-derived topics (FR-QST-01 – FR-QST-03,
+// FR-TOP-01). Kept last: ./questions imports the QUESTION_* constants above.
+export * from './questions';
+
+
