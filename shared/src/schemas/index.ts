@@ -187,4 +187,9 @@ export type ResetPasswordInput = z.infer<typeof resetPasswordSchema>;
 // FR-TOP-01). Kept last: ./questions imports the QUESTION_* constants above.
 export * from './questions';
 
+// Perspectives, upvotes and comparison (FR-PSP-01, FR-VOTE-01, FR-CMP-01).
+// Kept last: ./perspectives imports the PERSPECTIVE_* constants and the
+// perspectiveCodeSnippetSchema defined above.
+export * from './perspectives';
+
 

@@ -1,0 +1,158 @@
+import { Selectable } from 'kysely';
+import { db } from '../config/database';
+import { PerspectivesTable } from '../types/database';
+import type { DbHandle } from './questionRepository';
+
+export type PerspectiveRow = Selectable<PerspectivesTable>;
+
+// Plain insert shape (status, flagged, deleted_at, created_at and
+// search_vector are Generated or nullable-optional in PerspectivesTable)
+export interface NewPerspective {
+  topic_id: string;
+  author_id: string;
+  proposed_solution: string;
+  explanation: string;
+  advantages: string[];
+  limitations: string[];
+  code_snippets: Array<{ language: string; code: string }>;
+  reference_urls: string[];
+}
+
+export const perspectiveRepository = {
+  create(data: NewPerspective, dbi: DbHandle = db): Promise<PerspectiveRow> {
+    return dbi
+      .insertInto('perspectives')
+      .values({
+        ...data,
+        // node-postgres serializes JS arrays as Postgres array literals, which
+        // is not valid JSON input for a jsonb column; pass a JSON string instead
+        code_snippets: JSON.stringify(data.code_snippets) as unknown as NewPerspective['code_snippets'],
+      })
+      .returningAll()
+      .executeTakeFirstOrThrow();
+  },
+
+  findByTopicAndAuthor(
+    topicId: string,
+    authorId: string,
+    dbi: DbHandle = db,
+  ): Promise<PerspectiveRow | undefined> {
+    return dbi
+      .selectFrom('perspectives')
+      .selectAll()
+      .where('topic_id', '=', topicId)
+      .where('author_id', '=', authorId)
+      .executeTakeFirst();
+  },
+
+  findById(id: string, dbi: DbHandle = db): Promise<PerspectiveRow | undefined> {
+    return dbi.selectFrom('perspectives').selectAll().where('id', '=', id).executeTakeFirst();
+  },
+
+  findByIdForUpdate(id: string, dbi: DbHandle): Promise<PerspectiveRow | undefined> {
+    return dbi
+      .selectFrom('perspectives')
+      .selectAll()
+      .where('id', '=', id)
+      .forUpdate()
+      .executeTakeFirst();
+  },
+
+  listVisibleByTopicId(
+    topicId: string,
+    dbi: DbHandle = db,
+  ): Promise<Array<PerspectiveRow & { author_username: string }>> {
+    return dbi
+      .selectFrom('perspectives')
+      .innerJoin('users', 'users.id', 'perspectives.author_id')
+      .selectAll('perspectives')
+      .select((eb) => eb.ref('users.username').as('author_username'))
+      .where('perspectives.topic_id', '=', topicId)
+      .where('perspectives.status', '=', 'visible')
+      .orderBy('perspectives.created_at', 'desc')
+      .execute();
+  },
+
+  findByIdsVisible(
+    ids: string[],
+    dbi: DbHandle = db,
+  ): Promise<Array<PerspectiveRow & { author_username: string }>> {
+    return dbi
+      .selectFrom('perspectives')
+      .innerJoin('users', 'users.id', 'perspectives.author_id')
+      .selectAll('perspectives')
+      .select((eb) => eb.ref('users.username').as('author_username'))
+      .where('perspectives.id', 'in', ids)
+      .where('perspectives.status', '=', 'visible')
+      .execute();
+  },
+
+  async hasVote(
+    perspectiveId: string,
+    userId: string,
+    dbi: DbHandle = db,
+  ): Promise<boolean> {
+    const found = await dbi
+      .selectFrom('perspective_votes')
+      .select('perspective_id')
+      .where('perspective_id', '=', perspectiveId)
+      .where('user_id', '=', userId)
+      .executeTakeFirst();
+    return found !== undefined;
+  },
+
+  async addVote(perspectiveId: string, userId: string, dbi: DbHandle = db): Promise<void> {
+    await dbi
+      .insertInto('perspective_votes')
+      .values({ perspective_id: perspectiveId, user_id: userId })
+      .execute();
+  },
+
+  async removeVote(perspectiveId: string, userId: string, dbi: DbHandle = db): Promise<void> {
+    await dbi
+      .deleteFrom('perspective_votes')
+      .where('perspective_id', '=', perspectiveId)
+      .where('user_id', '=', userId)
+      .execute();
+  },
+
+  async countVotesByPerspectiveIds(
+    ids: string[],
+    dbi: DbHandle = db,
+  ): Promise<Map<string, number>> {
+    const counts = new Map<string, number>();
+    if (ids.length === 0) {
+      return counts;
+    }
+    const rows = await dbi
+      .selectFrom('perspective_votes')
+      .select('perspective_id')
+      .where('perspective_id', 'in', ids)
+      .execute();
+    for (const row of rows) {
+      counts.set(row.perspective_id, (counts.get(row.perspective_id) ?? 0) + 1);
+    }
+    return counts;
+  },
+
+  async votedPerspectiveIds(
+    userId: string,
+    ids: string[],
+    dbi: DbHandle = db,
+  ): Promise<Set<string>> {
+    const voted = new Set<string>();
+    if (ids.length === 0) {
+      return voted;
+    }
+    const rows = await dbi
+      .selectFrom('perspective_votes')
+      .select('perspective_id')
+      .where('user_id', '=', userId)
+      .where('perspective_id', 'in', ids)
+      .execute();
+    for (const row of rows) {
+      voted.add(row.perspective_id);
+    }
+    return voted;
+  },
+};

@@ -3,6 +3,7 @@ import healthRoutes from './healthRoutes';
 import authRoutes from './authRoutes';
 import questionRoutes from './questionRoutes';
 import topicRoutes from './topicRoutes';
+import perspectiveRoutes from './perspectiveRoutes';
 import { categoryRoutes, tagRoutes } from './taxonomyRoutes';
 
 const router = Router();
@@ -22,5 +23,8 @@ router.use('/questions', questionRoutes);
 
 // Mount topic routes at /api/topics
 router.use('/topics', topicRoutes);
+
+// Mount perspective and vote routes (full paths, mounted at /api)
+router.use(perspectiveRoutes);
 
 export default router;
