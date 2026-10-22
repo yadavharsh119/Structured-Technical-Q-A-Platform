@@ -45,3 +45,11 @@ uploads/
 # Temporary files
 scratch/
 tmp/
+
+# Agent tooling folders
+.agents/
+.codex/
+.copilot/
+.gemini/
+.kiro/
+.mcp.json
