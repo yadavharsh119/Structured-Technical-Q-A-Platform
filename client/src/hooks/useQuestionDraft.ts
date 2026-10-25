@@ -5,7 +5,13 @@ const DRAFT_KEY = 'stackrationale-question-draft';
 const SAVE_EVERY_MS = 60_000;
 
 function isDirty(d: QuestionDraft): boolean {
-  return d.title !== '' || d.description !== '' || d.techStack !== '' || d.tags.length > 0 || d.category !== '';
+  return (
+    d.title !== '' ||
+    d.description !== '' ||
+    d.techStack !== '' ||
+    d.tagIds.length > 0 ||
+    d.categoryId !== ''
+  );
 }
 
 export function loadDraft(): QuestionDraft | null {
@@ -16,9 +22,11 @@ export function loadDraft(): QuestionDraft | null {
     return {
       title: typeof parsed.title === 'string' ? parsed.title : '',
       description: typeof parsed.description === 'string' ? parsed.description : '',
-      category: typeof parsed.category === 'string' ? parsed.category : '',
+      categoryId: typeof parsed.categoryId === 'string' ? parsed.categoryId : '',
       techStack: typeof parsed.techStack === 'string' ? parsed.techStack : '',
-      tags: Array.isArray(parsed.tags) ? parsed.tags.filter((t): t is string => typeof t === 'string') : [],
+      tagIds: Array.isArray(parsed.tagIds)
+        ? parsed.tagIds.filter((t): t is string => typeof t === 'string')
+        : [],
     };
   } catch {
     return null;

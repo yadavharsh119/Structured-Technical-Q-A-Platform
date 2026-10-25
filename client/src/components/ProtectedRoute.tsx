@@ -6,9 +6,14 @@ import { useAuth } from '../context/AuthContext';
 interface ProtectedRouteProps {
   children: ReactNode;
   allowedRoles?: UserRole[];
+  forbiddenRedirectTo?: string;
 }
 
-export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) {
+export function ProtectedRoute({
+  children,
+  allowedRoles,
+  forbiddenRedirectTo,
+}: ProtectedRouteProps) {
   const { user, loading } = useAuth();
   const location = useLocation();
 
@@ -28,6 +33,9 @@ export function ProtectedRoute({ children, allowedRoles }: ProtectedRouteProps) 
   }
 
   if (allowedRoles && !allowedRoles.includes(user.role)) {
+    if (forbiddenRedirectTo) {
+      return <Navigate to={forbiddenRedirectTo} replace />;
+    }
     return (
       <div className="mx-auto max-w-content px-6 py-16 text-center" data-testid="auth-forbidden">
         <h1 className="font-serif text-[28px] text-ink">You do not have permission to view this page.</h1>

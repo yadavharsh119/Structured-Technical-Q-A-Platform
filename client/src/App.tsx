@@ -16,6 +16,7 @@ import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
 import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
 import { QuestionReviewQueuePage } from './pages/QuestionReviewQueuePage';
+import { MyQuestionsPage } from './pages/MyQuestionsPage';
 import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -50,7 +51,22 @@ export function App() {
           <Route path="/topics/:slug/perspectives/new" element={<SubmitPerspectivePage />} />
           <Route path="/topics/:slug" element={<TopicPage />} />
           <Route path="/compare" element={<ComparePage />} />
-          <Route path="/questions/new" element={<AskQuestionPage />} />
+          <Route
+            path="/questions/new"
+            element={
+              <ProtectedRoute>
+                <AskQuestionPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/questions/mine"
+            element={
+              <ProtectedRoute>
+                <MyQuestionsPage />
+              </ProtectedRoute>
+            }
+          />
           <Route
             path="/dashboard"
             element={
@@ -83,7 +99,7 @@ export function App() {
           <Route
             path="/admin/questions"
             element={
-              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
+              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]} forbiddenRedirectTo="/">
                 <QuestionReviewQueuePage />
               </ProtectedRoute>
             }

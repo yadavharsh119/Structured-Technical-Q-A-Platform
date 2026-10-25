@@ -1,18 +1,19 @@
 import { Link } from 'react-router-dom';
-import type { TopicResult } from '../../types/search';
+import type { Topic } from '../../api/types';
 
-function formatDate(iso: string): string {
-  const d = new Date(`${iso}T00:00:00`);
-  return d.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
+interface Props {
+  topic: Topic;
+  categoryName: string;
 }
 
-export function TopicResultCard({ topic }: { topic: TopicResult }) {
+export function TopicResultCard({ topic, categoryName }: Props) {
   return (
     <Link
       to={`/topics/${topic.slug}`}
+      data-testid="topic-card"
       className="block rounded-xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)] transition-colors hover:border-ink"
     >
-      <p className="text-sm font-medium text-muted">{topic.category}</p>
+      <p className="text-sm font-medium text-muted">{categoryName}</p>
       <h3 className="mt-2 text-lg font-semibold leading-snug text-ink">{topic.title}</h3>
       <p className="mt-2 line-clamp-2 text-base text-body">{topic.description}</p>
       {topic.tags.length > 0 && (
@@ -24,19 +25,6 @@ export function TopicResultCard({ topic }: { topic: TopicResult }) {
           ))}
         </ul>
       )}
-      <p className="mt-4 text-sm text-muted">
-        {topic.perspectiveCount === 0 ? (
-          <span>No Perspectives yet</span>
-        ) : (
-          <span className="font-medium text-ink">
-            {topic.perspectiveCount} Perspectives · {topic.totalUpvotes} upvotes
-          </span>
-        )}
-        <span aria-hidden="true"> · </span>
-        <span>@{topic.author}</span>
-        <span aria-hidden="true"> · </span>
-        <time dateTime={topic.createdAt}>{formatDate(topic.createdAt)}</time>
-      </p>
     </Link>
   );
 }

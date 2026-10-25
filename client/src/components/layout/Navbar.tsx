@@ -30,6 +30,11 @@ export function Navbar() {
       ? `${mobile ? 'block' : ''} text-sm font-medium text-ink underline decoration-black decoration-2 underline-offset-8`
       : `${mobile ? 'block' : ''} text-sm font-medium text-secondary hover:text-black`;
 
+  const pageClass = (path: string, mobile: boolean) =>
+    pathname === path
+      ? `${mobile ? 'block' : ''} text-sm font-medium text-ink underline decoration-black decoration-2 underline-offset-8`
+      : `${mobile ? 'block' : ''} text-sm font-medium text-secondary hover:text-black`;
+
   const sectionClass = (mobile: boolean) =>
     `${mobile ? 'block' : ''} text-sm font-medium text-secondary hover:text-black`;
 
@@ -46,6 +51,20 @@ export function Navbar() {
               Topics
             </Link>
           </li>
+          {user && (
+            <>
+              <li>
+                <Link to="/questions/new" data-testid="nav-ask-question" className={pageClass('/questions/new', false)}>
+                  Ask Question
+                </Link>
+              </li>
+              <li>
+                <Link to="/questions/mine" data-testid="nav-my-questions" className={pageClass('/questions/mine', false)}>
+                  My Questions
+                </Link>
+              </li>
+            </>
+          )}
           {SECTION_LINKS.map((l) => (
             <li key={l.hash}>
               <a href={sectionHref(l.hash)} className={sectionClass(false)}>
@@ -115,6 +134,30 @@ export function Navbar() {
                 Topics
               </Link>
             </li>
+            {user && (
+              <>
+                <li>
+                  <Link
+                    to="/questions/new"
+                    onClick={() => setOpen(false)}
+                    data-testid="nav-ask-question-mobile"
+                    className={pageClass('/questions/new', true)}
+                  >
+                    Ask Question
+                  </Link>
+                </li>
+                <li>
+                  <Link
+                    to="/questions/mine"
+                    onClick={() => setOpen(false)}
+                    data-testid="nav-my-questions-mobile"
+                    className={pageClass('/questions/mine', true)}
+                  >
+                    My Questions
+                  </Link>
+                </li>
+              </>
+            )}
             {SECTION_LINKS.map((l) => (
               <li key={l.hash}>
                 <a href={sectionHref(l.hash)} className={sectionClass(true)}>

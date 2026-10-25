@@ -1,67 +1,65 @@
-import {
-  QUESTION_ATTACHMENTS_MAX,
-  QUESTION_ATTACHMENT_EXTENSIONS,
-  QUESTION_ATTACHMENT_MAX_BYTES,
-  QUESTION_CATEGORIES,
-  QUESTION_DESCRIPTION_MAX,
-  QUESTION_TAGS,
-  QUESTION_TAGS_MAX,
-  QUESTION_TITLE_MAX,
-  questionSubmissionSchema,
+import type {
+  ApiResponse,
+  QuestionApproveInput,
+  QuestionCreateInput,
+  QuestionRejectInput,
+  QuestionUpdateInput,
 } from '@structured-qa/shared';
-import type { QuestionSubmission } from '@structured-qa/shared';
-
-export type { QuestionSubmission };
+import { apiRequest } from './client';
+import type { Question, QuestionWithTopic } from './types';
 
 export interface QuestionDraft {
   title: string;
   description: string;
-  category: string;
+  categoryId: string;
   techStack: string;
-  tags: string[];
+  tagIds: string[];
 }
 
-export interface DraftAttachment {
-  name: string;
-  size: number;
+export function createQuestion(
+  input: QuestionCreateInput,
+): Promise<ApiResponse<{ question: Question }>> {
+  return apiRequest('/questions', { method: 'POST', body: JSON.stringify(input) });
 }
 
-export interface SubmittedQuestion {
-  id: string;
-  status: 'Pending';
+export function listMyQuestions(): Promise<ApiResponse<{ questions: Question[] }>> {
+  return apiRequest('/questions/mine');
 }
 
-const LATENCY_MS = 600;
-
-function mockId(): string {
-  return `q-${Date.now().toString(36)}`;
+export function listPendingQuestions(): Promise<ApiResponse<{ questions: Question[] }>> {
+  return apiRequest('/questions/pending');
 }
 
-export async function submitQuestion(
-  payload: QuestionSubmission,
-  files: File[],
-): Promise<SubmittedQuestion> {
-  // Mock backend: validate with the shared schema, then return a fake ID.
-  // When the real endpoint exists, POST to /api/questions here instead.
-  const parsed = questionSubmissionSchema.safeParse({
-    ...payload,
-    attachments: files.map((f) => ({ name: f.name, size: f.size })),
+export function updateQuestion(
+  id: string,
+  input: QuestionUpdateInput,
+): Promise<ApiResponse<{ question: Question }>> {
+  return apiRequest(`/questions/${encodeURIComponent(id)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
   });
-  if (!parsed.success) {
-    throw new Error(parsed.error.issues[0]?.message ?? 'Invalid question.');
-  }
-  await new Promise((resolve) => setTimeout(resolve, LATENCY_MS));
-  return { id: mockId(), status: 'Pending' };
 }
 
-export {
-  QUESTION_ATTACHMENTS_MAX,
-  QUESTION_ATTACHMENT_EXTENSIONS,
-  QUESTION_ATTACHMENT_MAX_BYTES,
-  QUESTION_CATEGORIES,
-  QUESTION_DESCRIPTION_MAX,
-  QUESTION_TAGS,
-  QUESTION_TAGS_MAX,
-  QUESTION_TITLE_MAX,
-  questionSubmissionSchema,
-};
+export function deleteQuestion(id: string): Promise<ApiResponse<{ message: string }>> {
+  return apiRequest(`/questions/${encodeURIComponent(id)}`, { method: 'DELETE' });
+}
+
+export function rejectQuestion(
+  id: string,
+  input: QuestionRejectInput,
+): Promise<ApiResponse<{ question: Question }>> {
+  return apiRequest(`/questions/${encodeURIComponent(id)}/reject`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function approveQuestion(
+  id: string,
+  input: QuestionApproveInput,
+): Promise<ApiResponse<QuestionWithTopic>> {
+  return apiRequest(`/questions/${encodeURIComponent(id)}/approve`, {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
