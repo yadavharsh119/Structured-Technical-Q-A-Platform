@@ -48,7 +48,14 @@ export function App() {
         <Routes>
           <Route path="/" element={<LandingPage />} />
           <Route path="/topics" element={<TopicsPage />} />
-          <Route path="/topics/:slug/perspectives/new" element={<SubmitPerspectivePage />} />
+          <Route
+            path="/topics/:slug/perspectives/new"
+            element={
+              <ProtectedRoute>
+                <SubmitPerspectivePage />
+              </ProtectedRoute>
+            }
+          />
           <Route path="/topics/:slug" element={<TopicPage />} />
           <Route path="/compare" element={<ComparePage />} />
           <Route

@@ -2,7 +2,12 @@ import type { AnchorHTMLAttributes, ButtonHTMLAttributes, ReactNode } from 'reac
 import { clsx } from 'clsx';
 
 type Variant = 'primary' | 'outline';
-type Common = { variant?: Variant; className?: string; children: ReactNode };
+type Common = {
+  variant?: Variant;
+  className?: string;
+  children: ReactNode;
+  'data-testid'?: string;
+};
 
 export function Button({
   variant = 'primary',

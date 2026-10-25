@@ -1,13 +1,12 @@
 import { useEffect, useRef, useState } from 'react';
 
 export interface PerspectiveDraft {
-  solution: string;
+  proposedSolution: string;
   explanation: string;
   advantages: string[];
   limitations: string[];
   codeSnippets: Array<{ language: string; code: string }>;
-  references: Array<{ label: string; url: string }>;
-  anonymous: boolean;
+  references: string[];
 }
 
 const SAVE_INTERVAL_MS = 60_000;
@@ -18,28 +17,45 @@ function draftKey(slug: string): string {
 
 export function isDraftDirty(d: PerspectiveDraft): boolean {
   return (
-    d.solution.trim() !== '' ||
+    d.proposedSolution.trim() !== '' ||
     d.explanation.trim() !== '' ||
     d.advantages.some((a) => a.trim() !== '') ||
     d.limitations.some((l) => l.trim() !== '') ||
     d.codeSnippets.some((s) => s.code.trim() !== '') ||
-    d.references.some((r) => r.url.trim() !== '')
+    d.references.some((r) => r.trim() !== '')
   );
+}
+
+interface LegacyDraft {
+  solution?: unknown;
+  references?: unknown;
 }
 
 export function loadPerspectiveDraft(slug: string): PerspectiveDraft | null {
   try {
     const raw = localStorage.getItem(draftKey(slug));
     if (!raw) return null;
-    const parsed = JSON.parse(raw) as Partial<PerspectiveDraft>;
+    const parsed = JSON.parse(raw) as Partial<PerspectiveDraft> & LegacyDraft;
+    const legacySolution = typeof parsed.solution === 'string' ? parsed.solution : '';
+    const references = Array.isArray(parsed.references)
+      ? parsed.references
+          .map((entry) =>
+            typeof entry === 'string'
+              ? entry
+              : typeof entry === 'object' && entry !== null && 'url' in entry
+                ? String((entry as { url?: unknown }).url ?? '')
+                : '',
+          )
+          .filter(Boolean)
+      : [];
     return {
-      solution: typeof parsed.solution === 'string' ? parsed.solution : '',
+      proposedSolution:
+        typeof parsed.proposedSolution === 'string' ? parsed.proposedSolution : legacySolution,
       explanation: typeof parsed.explanation === 'string' ? parsed.explanation : '',
       advantages: Array.isArray(parsed.advantages) ? parsed.advantages : [''],
       limitations: Array.isArray(parsed.limitations) ? parsed.limitations : [''],
       codeSnippets: Array.isArray(parsed.codeSnippets) ? parsed.codeSnippets : [],
-      references: Array.isArray(parsed.references) ? parsed.references : [],
-      anonymous: Boolean(parsed.anonymous),
+      references,
     };
   } catch {
     return null;
@@ -62,7 +78,10 @@ export function savePerspectiveDraft(slug: string, draft: PerspectiveDraft): voi
   }
 }
 
-export function usePerspectiveDraft(slug: string, draft: PerspectiveDraft): { lastSaved: Date | null } {
+export function usePerspectiveDraft(
+  slug: string,
+  draft: PerspectiveDraft,
+): { lastSaved: Date | null } {
   const [lastSaved, setLastSaved] = useState<Date | null>(null);
   const ref = useRef(draft);
   ref.current = draft;

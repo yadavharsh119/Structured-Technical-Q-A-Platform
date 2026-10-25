@@ -6,7 +6,7 @@ export default defineConfig({
   plugins: [react()],
   resolve: {
     alias: {
-      '@structured-qa/shared': resolve(__dirname, '../shared/src/index.ts'),
+      '@structured-qa/shared': resolve(__dirname, '../shared/dist/index.js'),
     },
   },
   optimizeDeps: {
@@ -14,7 +14,7 @@ export default defineConfig({
   },
   build: {
     commonjsOptions: {
-      include: [/@structured-qa\/shared/, /node_modules/],
+      include: [/shared[\\/]dist[\\/]/, /node_modules/],
     },
   },
   server: {

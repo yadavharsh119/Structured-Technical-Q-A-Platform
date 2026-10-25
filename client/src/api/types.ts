@@ -43,3 +43,30 @@ export interface QuestionWithTopic {
   question: Question;
   topic: Topic;
 }
+
+export interface PerspectiveCodeSnippet {
+  language: string;
+  code: string;
+}
+
+export interface Perspective {
+  id: string;
+  topicId: string;
+  authorUsername: string;
+  proposedSolution: string;
+  explanation: string;
+  advantages: string[];
+  limitations: string[];
+  codeSnippets: PerspectiveCodeSnippet[];
+  references: string[];
+  upvoteCount: number;
+  hasUpvoted: boolean;
+  createdAt: string;
+}
+
+export type PerspectiveSort = 'newest' | 'top';
+
+export interface PerspectiveVoteState {
+  upvoteCount: number;
+  hasUpvoted: boolean;
+}

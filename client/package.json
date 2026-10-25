@@ -4,7 +4,9 @@
   "type": "module",
   "description": "Frontend React SPA for Structured Technical Q&A Platform",
   "scripts": {
+    "predev": "npm run build --workspace=@structured-qa/shared",
     "dev": "vite",
+    "prebuild": "npm run build --workspace=@structured-qa/shared",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "typecheck": "tsc --noEmit"
