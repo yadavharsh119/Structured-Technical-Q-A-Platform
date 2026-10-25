@@ -1,60 +1,104 @@
-import { BrowserRouter, Link, Route, Routes } from 'react-router-dom';
-import { Navbar } from './components/Navbar';
+import { useEffect } from 'react';
+import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
-import HomePage from './pages/HomePage';
+import { LandingPage } from './pages/LandingPage';
+import { TopicsPage } from './pages/TopicsPage';
+import { TopicPage } from './pages/TopicPage';
+import { SubmitPerspectivePage } from './pages/SubmitPerspectivePage';
+import { ComparePage } from './pages/ComparePage';
+import { AskQuestionPage } from './pages/AskQuestionPage';
+import { DashboardPage } from './pages/DashboardPage';
+import { ProfilePage } from './pages/ProfilePage';
 import { LoginPage } from './pages/LoginPage';
 import { RegisterPage } from './pages/RegisterPage';
-import { ReviewPage } from './pages/ReviewPage';
+import { ForgotPasswordPage } from './pages/ForgotPasswordPage';
+import { ResetPasswordPage } from './pages/ResetPasswordPage';
 import { VerifyEmailPage } from './pages/VerifyEmailPage';
+import { QuestionReviewQueuePage } from './pages/QuestionReviewQueuePage';
+import { ModerationQueuePage } from './pages/ModerationQueuePage';
+import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { NotFoundPage } from './pages/NotFoundPage';
 
-function NotFound() {
-  return (
-    <div className="py-16 text-center" data-testid="not-found">
-      <h1 className="text-2xl font-bold text-slate-900">Page not found</h1>
-      <p className="mt-2 text-sm text-slate-500">
-        The page you are looking for does not exist.
-      </p>
-      <Link
-        to="/"
-        data-testid="link-notfound-home"
-        className="mt-4 inline-block text-sm font-medium text-primary-700 hover:underline"
-      >
-        Back to home
-      </Link>
-    </div>
-  );
+function ScrollToHash() {
+  const { pathname, hash } = useLocation();
+  useEffect(() => {
+    if (hash) {
+      document.querySelector(hash)?.scrollIntoView();
+    } else {
+      window.scrollTo(0, 0);
+    }
+  }, [pathname, hash]);
+  return null;
 }
+
+function SearchRedirect() {
+  const { search } = useLocation();
+  return <Navigate to={`/topics${search}`} replace />;
+}
+
+const REVIEWER_ROLES = ['moderator', 'admin'] as const;
 
 export function App() {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <div className="flex min-h-screen flex-col bg-slate-50">
-          <Navbar />
-          <main className="mx-auto w-full max-w-6xl flex-1 px-4 py-8 sm:px-6 lg:px-8">
-            <Routes>
-              <Route path="/" element={<HomePage />} />
-              <Route path="/login" element={<LoginPage />} />
-              <Route path="/register" element={<RegisterPage />} />
-              <Route path="/verify-email" element={<VerifyEmailPage />} />
-              <Route
-                path="/review"
-                element={
-                  <ProtectedRoute>
-                    <ReviewPage />
-                  </ProtectedRoute>
-                }
-              />
-              <Route path="*" element={<NotFound />} />
-            </Routes>
-          </main>
-          <footer className="mt-auto border-t border-slate-200 bg-white py-4">
-            <div className="mx-auto max-w-6xl px-4 text-center text-xs text-slate-500 sm:px-6 lg:px-8">
-              Structured Technical Q&amp;A Platform &copy; 2026
-            </div>
-          </footer>
-        </div>
+        <ScrollToHash />
+        <Routes>
+          <Route path="/" element={<LandingPage />} />
+          <Route path="/topics" element={<TopicsPage />} />
+          <Route path="/topics/:slug/perspectives/new" element={<SubmitPerspectivePage />} />
+          <Route path="/topics/:slug" element={<TopicPage />} />
+          <Route path="/compare" element={<ComparePage />} />
+          <Route path="/questions/new" element={<AskQuestionPage />} />
+          <Route
+            path="/dashboard"
+            element={
+              <ProtectedRoute>
+                <DashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/profile"
+            element={
+              <ProtectedRoute>
+                <ProfilePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/login" element={<LoginPage />} />
+          <Route path="/register" element={<RegisterPage />} />
+          <Route path="/forgot-password" element={<ForgotPasswordPage />} />
+          <Route path="/reset-password" element={<ResetPasswordPage />} />
+          <Route path="/verify-email" element={<VerifyEmailPage />} />
+          <Route
+            path="/admin"
+            element={
+              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
+                <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/questions"
+            element={
+              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
+                <QuestionReviewQueuePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/reports"
+            element={
+              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
+                <ModerationQueuePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route path="/search" element={<SearchRedirect />} />
+          <Route path="*" element={<NotFoundPage />} />
+        </Routes>
       </AuthProvider>
     </BrowserRouter>
   );

@@ -38,7 +38,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const login = useCallback(async (input: LoginInput) => {
     const response = await loginRequest(input);
     if (response.success) {
-      setUser(response.data.user);
+      // Login only succeeds for verified accounts, and the login payload omits the flag.
+      setUser({ ...response.data.user, emailVerified: true });
     }
     return response;
   }, []);

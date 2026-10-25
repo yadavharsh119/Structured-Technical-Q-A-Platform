@@ -5,15 +5,24 @@ export default {
   theme: {
     extend: {
       colors: {
-        primary: {
-          50: '#f0f9ff',
-          100: '#e0f2fe',
-          500: '#0ea5e9',
-          600: '#0284c7',
-          700: '#0369a1',
-        },
+        ink: '#171717',
+        body: '#4A5568',
+        muted: '#6B7280',
+        line: '#E5E7EB',
+        tint: '#F3F4F6',
+        secondary: '#2D2D2D',
+        success: '#22C55E',
+        deco: '#9CA3AF',
+      },
+      fontFamily: {
+        serif: ['"Playfair Display"', 'Georgia', 'serif'],
+        sans: ['Inter', 'system-ui', 'sans-serif'],
+      },
+      maxWidth: {
+        content: '1152px',
       },
     },
   },
   plugins: [],
 } satisfies Config;
+

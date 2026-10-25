@@ -8,6 +8,7 @@ export interface AuthUser {
   email: string;
   role: UserRole;
   status: UserStatus;
+  emailVerified?: boolean;
 }
 
 export function registerRequest(input: RegisterInput): Promise<ApiResponse<{ message: string }>> {
@@ -16,6 +17,13 @@ export function registerRequest(input: RegisterInput): Promise<ApiResponse<{ mes
 
 export function verifyEmailRequest(token: string): Promise<ApiResponse<{ message: string }>> {
   return apiRequest('/auth/verify-email', { method: 'POST', body: JSON.stringify({ token }) });
+}
+
+export function resendVerificationRequest(email: string): Promise<ApiResponse<{ message: string }>> {
+  return apiRequest('/auth/resend-verification', {
+    method: 'POST',
+    body: JSON.stringify({ email }),
+  });
 }
 
 export function loginRequest(input: LoginInput): Promise<ApiResponse<{ user: AuthUser }>> {
