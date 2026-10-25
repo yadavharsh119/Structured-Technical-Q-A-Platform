@@ -65,3 +65,22 @@ npm run dev:client
 
 - Health check: `GET http://localhost:5000/api/health`
 - Frontend UI: `http://localhost:3000`
+
+## End-to-End Test
+
+`e2e/happy_path.py` is a Selenium happy path covering registration, question
+review, topic creation, perspectives, upvotes and comparison against the real
+client, API and PostgreSQL. It creates timestamped test users and removes them
+and their content in a `finally` block.
+
+With PostgreSQL, the backend on port 5000 and the client on port 3000 running:
+
+```bash
+python -m pip install -r e2e/requirements.txt
+python e2e/happy_path.py           # headless Chrome
+python e2e/happy_path.py --headed  # watch the browser
+```
+
+Defaults for `BASE_URL` and `DATABASE_URL` come from `.env`; both can be
+overridden with environment variables. Failures stop the run and save a
+screenshot to `e2e/artifacts/`. See `e2e/README.md` for details.
