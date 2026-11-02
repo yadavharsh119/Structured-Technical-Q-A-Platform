@@ -36,3 +36,9 @@ export function requireAuthUserId(req: Request): string {
   }
   return req.auth.user.id;
 }
+
+// Moderators and admins may see hidden content in public read endpoints
+export function canSeeHiddenContent(req: Request): boolean {
+  const role = req.auth?.user.role;
+  return role === 'moderator' || role === 'admin';
+}

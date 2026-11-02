@@ -194,3 +194,6 @@ export * from './perspectives';
 
 // Search and filter (FR-SRCH-01, FR-SRCH-02).
 export * from './search';
+
+// Content reporting and the moderator queue (FR-MOD-01, FR-MOD-02).
+export * from './reports';

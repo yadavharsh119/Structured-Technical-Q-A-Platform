@@ -3,7 +3,7 @@ import { searchRepository } from '../repositories/searchRepository';
 import type { SearchQuery, SearchResponse, SearchTopicResult } from '@structured-qa/shared';
 import { SEARCH_PAGE_SIZE } from '@structured-qa/shared';
 
-async function search(input: SearchQuery): Promise<SearchResponse> {
+async function search(input: SearchQuery, includeHidden = false): Promise<SearchResponse> {
   const { q, category, tag, sort, page } = input;
 
   const tags = tag ?? [];
@@ -15,6 +15,7 @@ async function search(input: SearchQuery): Promise<SearchResponse> {
     sort,
     page,
     pageSize: SEARCH_PAGE_SIZE,
+    includeHidden,
   });
 
   const results: SearchTopicResult[] = rows.map((row) => {

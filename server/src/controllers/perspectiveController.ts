@@ -5,7 +5,13 @@ import {
   perspectiveListQuerySchema,
 } from '@structured-qa/shared';
 import { perspectiveService } from '../services/perspectiveService';
-import { asyncHandler, parseBody, parseUuidParam, requireAuthUserId } from './requestParsing';
+import {
+  asyncHandler,
+  canSeeHiddenContent,
+  parseBody,
+  parseUuidParam,
+  requireAuthUserId,
+} from './requestParsing';
 
 export const create = asyncHandler(async (req: Request, res: Response) => {
   const input = parseBody(perspectiveCreateSchema, req.body);
@@ -20,7 +26,12 @@ export const create = asyncHandler(async (req: Request, res: Response) => {
 export const list = asyncHandler(async (req: Request, res: Response) => {
   const query = parseBody(perspectiveListQuerySchema, req.query);
   const viewerId = req.auth?.user.id ?? null;
-  const perspectives = await perspectiveService.list(req.params.slug ?? '', query.sort, viewerId);
+  const perspectives = await perspectiveService.list(
+    req.params.slug ?? '',
+    query.sort,
+    viewerId,
+    canSeeHiddenContent(req),
+  );
   res.status(200).json({ success: true, data: { perspectives } });
 });
 
@@ -37,6 +48,7 @@ export const compare = asyncHandler(async (req: Request, res: Response) => {
     req.params.slug ?? '',
     query.ids,
     viewerId,
+    canSeeHiddenContent(req),
   );
   res.status(200).json({ success: true, data: { perspectives } });
 });

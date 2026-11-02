@@ -45,6 +45,19 @@ export const perspectiveRepository = {
       .executeTakeFirst();
   },
 
+  findByIdWithAuthor(
+    id: string,
+    dbi: DbHandle = db,
+  ): Promise<(PerspectiveRow & { author_username: string }) | undefined> {
+    return dbi
+      .selectFrom('perspectives')
+      .innerJoin('users', 'users.id', 'perspectives.author_id')
+      .selectAll('perspectives')
+      .select((eb) => eb.ref('users.username').as('author_username'))
+      .where('perspectives.id', '=', id)
+      .executeTakeFirst();
+  },
+
   findById(id: string, dbi: DbHandle = db): Promise<PerspectiveRow | undefined> {
     return dbi.selectFrom('perspectives').selectAll().where('id', '=', id).executeTakeFirst();
   },
@@ -60,31 +73,38 @@ export const perspectiveRepository = {
 
   listVisibleByTopicId(
     topicId: string,
+    includeHidden = false,
     dbi: DbHandle = db,
   ): Promise<Array<PerspectiveRow & { author_username: string }>> {
-    return dbi
+    let query = dbi
       .selectFrom('perspectives')
       .innerJoin('users', 'users.id', 'perspectives.author_id')
       .selectAll('perspectives')
       .select((eb) => eb.ref('users.username').as('author_username'))
       .where('perspectives.topic_id', '=', topicId)
-      .where('perspectives.status', '=', 'visible')
-      .orderBy('perspectives.created_at', 'desc')
-      .execute();
+      .where('perspectives.status', '=', 'visible');
+    if (!includeHidden) {
+      query = query.where('perspectives.hidden', '=', false);
+    }
+    return query.orderBy('perspectives.created_at', 'desc').execute();
   },
 
   findByIdsVisible(
     ids: string[],
+    includeHidden = false,
     dbi: DbHandle = db,
   ): Promise<Array<PerspectiveRow & { author_username: string }>> {
-    return dbi
+    let query = dbi
       .selectFrom('perspectives')
       .innerJoin('users', 'users.id', 'perspectives.author_id')
       .selectAll('perspectives')
       .select((eb) => eb.ref('users.username').as('author_username'))
       .where('perspectives.id', 'in', ids)
-      .where('perspectives.status', '=', 'visible')
-      .execute();
+      .where('perspectives.status', '=', 'visible');
+    if (!includeHidden) {
+      query = query.where('perspectives.hidden', '=', false);
+    }
+    return query.execute();
   },
 
   async hasVote(
@@ -114,6 +134,10 @@ export const perspectiveRepository = {
       .where('perspective_id', '=', perspectiveId)
       .where('user_id', '=', userId)
       .execute();
+  },
+
+  async setHidden(id: string, hidden: boolean, dbi: DbHandle = db): Promise<void> {
+    await dbi.updateTable('perspectives').set({ hidden }).where('id', '=', id).execute();
   },
 
   async countVotesByPerspectiveIds(

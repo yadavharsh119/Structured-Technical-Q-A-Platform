@@ -21,8 +21,8 @@ export interface TopicDetailDto {
   questions: QuestionDto[];
 }
 
-async function list(): Promise<TopicDto[]> {
-  const rows = await topicRepository.listPublished();
+async function list(includeHidden = false): Promise<TopicDto[]> {
+  const rows = await topicRepository.listPublished(includeHidden);
   const tagNames = await tagRepository.namesByTopicIds(rows.map((row) => row.id));
   return rows.map((row) => ({
     id: row.id,
@@ -37,9 +37,9 @@ async function list(): Promise<TopicDto[]> {
   }));
 }
 
-async function getBySlug(slug: string): Promise<TopicDetailDto> {
+async function getBySlug(slug: string, includeHidden = false): Promise<TopicDetailDto> {
   const row = await topicRepository.findBySlug(slug);
-  if (!row || row.status !== 'published') {
+  if (!row || row.status !== 'published' || (!includeHidden && row.hidden)) {
     throw new AppError('Topic not found.', 404, 'TOPIC_NOT_FOUND');
   }
 

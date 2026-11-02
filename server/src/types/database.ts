@@ -154,6 +154,7 @@ export interface TopicsTable {
   status: Generated<TopicStatus>;
   created_by: string;
   merged_into_topic_id: string | null;
+  hidden: Generated<boolean>;
   created_at: Generated<Date>;
   updated_at: Generated<Date>;
   // generated tsvector column (GENERATED ALWAYS ... STORED)
@@ -189,6 +190,7 @@ export interface PerspectivesTable {
   reference_urls: Generated<string[]>;
   status: Generated<PerspectiveStatus>;
   flagged: Generated<boolean>;
+  hidden: Generated<boolean>;
   deleted_at: Date | null;
   created_at: Generated<Date>;
   // generated tsvector column (GENERATED ALWAYS ... STORED)
@@ -210,7 +212,7 @@ export interface AttachmentsTable {
 // Enums (mirror the PostgreSQL types created in 004_votes_moderation.sql)
 export type RequestStatus = 'pending' | 'approved' | 'rejected';
 export type ReportStatus = 'open' | 'under_review' | 'resolved' | 'dismissed';
-export type ReportReason = 'spam' | 'offensive' | 'duplicate' | 'misleading' | 'plagiarism' | 'other';
+export type ReportReason = 'spam' | 'abusive' | 'duplicate' | 'misleading' | 'plagiarism' | 'other';
 export type ReportTargetType = 'topic' | 'perspective';
 export type UserActionType = 'warning' | 'suspend' | 'ban' | 'restore';
 
@@ -237,9 +239,9 @@ export interface ReportsTable {
   target_type: ReportTargetType;
   target_id: string;
   reason: ReportReason;
-  comments: string | null;
+  comment: string | null;
   status: Generated<ReportStatus>;
-  handled_by: string | null;
+  resolved_by: string | null;
   handled_at: Date | null;
   created_at: Generated<Date>;
 }

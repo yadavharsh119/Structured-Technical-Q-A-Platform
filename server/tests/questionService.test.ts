@@ -97,6 +97,7 @@ function topicRow(overrides: Partial<TopicRow> = {}): TopicRow {
     status: 'published',
     created_by: REVIEWER,
     merged_into_topic_id: null,
+    hidden: false,
     created_at: new Date('2026-01-01T00:00:00Z'),
     updated_at: new Date('2026-01-01T00:00:00Z'),
     search_vector: '',

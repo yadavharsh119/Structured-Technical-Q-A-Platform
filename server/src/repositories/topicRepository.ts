@@ -27,13 +27,16 @@ async function insertTopicTags(dbi: DbHandle, topicId: string, tagIds: string[])
 }
 
 export const topicRepository = {
-  listPublished(): Promise<TopicRow[]> {
-    return db
+  listPublished(includeHidden = false): Promise<TopicRow[]> {
+    let query = db
       .selectFrom('topics')
       .selectAll()
       .where('status', '=', 'published')
-      .orderBy('created_at', 'asc')
-      .execute();
+      .orderBy('created_at', 'asc');
+    if (!includeHidden) {
+      query = query.where('hidden', '=', false);
+    }
+    return query.execute();
   },
 
   findBySlug(slug: string): Promise<TopicRow | undefined> {
@@ -70,5 +73,9 @@ export const topicRepository = {
       .executeTakeFirstOrThrow();
     await insertTopicTags(dbi, topic.id, tagIds);
     return topic;
+  },
+
+  async setHidden(id: string, hidden: boolean, dbi: DbHandle = db): Promise<void> {
+    await dbi.updateTable('topics').set({ hidden }).where('id', '=', id).execute();
   },
 };

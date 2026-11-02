@@ -28,6 +28,8 @@ export interface SearchParams {
   sort: SearchSort;
   page: number;
   pageSize: number;
+  /** Moderators/admins may see hidden topics and perspectives */
+  includeHidden: boolean;
 }
 
 export interface SearchResultSet {
@@ -73,7 +75,7 @@ export const searchRepository = {
    * no string interpolation of user input is performed.
    */
   async search(params: SearchParams): Promise<SearchResultSet> {
-    const { query, category, tags, sort, page, pageSize } = params;
+    const { query, category, tags, sort, page, pageSize, includeHidden } = params;
 
     // Convert the keyword string to a plain tsquery (handles multiple words
     // with implicit AND, safe against special characters).
@@ -81,6 +83,10 @@ export const searchRepository = {
     const tsQuery = sql`plainto_tsquery('english', ${query})`;
 
     const offset = (page - 1) * pageSize;
+
+    const visibleTopic = includeHidden ? sql`true` : sql`t.hidden = false`;
+    const visiblePerspective = includeHidden ? sql`true` : sql`p.hidden = false`;
+    const visiblePerspectiveP2 = includeHidden ? sql`true` : sql`p2.hidden = false`;
 
     // ── Category sub-filter ───────────────────────────────────────────────────
     // Accept both UUID and slug so the caller does not need to pre-resolve it.
@@ -145,6 +151,7 @@ export const searchRepository = {
             ts_rank(t.search_vector, ${tsQuery}) AS rank
           FROM topics t
           WHERE t.status = 'published'
+            AND ${visibleTopic}
             AND ${categoryCondition}
             AND ${tagCondition}
             AND t.search_vector @@ ${tsQuery}
@@ -156,9 +163,11 @@ export const searchRepository = {
           FROM topics t
           INNER JOIN perspectives p ON p.topic_id = t.id
           WHERE t.status = 'published'
+            AND ${visibleTopic}
             AND ${categoryCondition}
             AND ${tagCondition}
             AND p.status = 'visible'
+            AND ${visiblePerspective}
             AND p.search_vector @@ ${tsQuery}
           GROUP BY t.id
         ),
@@ -193,12 +202,12 @@ export const searchRepository = {
           FROM combined c
           INNER JOIN topics t   ON t.id  = c.topic_id
           INNER JOIN categories cat ON cat.id = t.category_id
-          LEFT  JOIN perspectives p ON p.topic_id = t.id AND p.status = 'visible'
+          LEFT  JOIN perspectives p ON p.topic_id = t.id AND p.status = 'visible' AND ${visiblePerspective}
           LEFT  JOIN LATERAL (
             SELECT p2.id AS perspective_id, count(*) AS vote_count
             FROM perspective_votes pv
             INNER JOIN perspectives p2 ON p2.id = pv.perspective_id
-            WHERE p2.topic_id = c.topic_id AND p2.status = 'visible'
+            WHERE p2.topic_id = c.topic_id AND p2.status = 'visible' AND ${visiblePerspectiveP2}
             GROUP BY p2.id
           ) pv_counts ON true
           GROUP BY

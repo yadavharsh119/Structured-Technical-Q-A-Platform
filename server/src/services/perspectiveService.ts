@@ -68,9 +68,9 @@ function isUniqueViolation(err: unknown): boolean {
   );
 }
 
-async function publishedTopicBySlug(slug: string) {
+async function publishedTopicBySlug(slug: string, includeHidden = false) {
   const topic = await topicRepository.findBySlug(slug);
-  if (!topic || topic.status !== 'published') {
+  if (!topic || topic.status !== 'published' || (!includeHidden && topic.hidden)) {
     throw topicNotFound();
   }
   return topic;
@@ -161,9 +161,10 @@ async function list(
   topicSlug: string,
   sort: 'newest' | 'top',
   viewerId: string | null,
+  includeHidden = false,
 ): Promise<PerspectiveDto[]> {
-  const topic = await publishedTopicBySlug(topicSlug);
-  const rows = await perspectiveRepository.listVisibleByTopicId(topic.id);
+  const topic = await publishedTopicBySlug(topicSlug, includeHidden);
+  const rows = await perspectiveRepository.listVisibleByTopicId(topic.id, includeHidden);
   const dtos = await toDtos(rows, viewerId);
   if (sort === 'top') {
     dtos.sort(
@@ -205,8 +206,9 @@ async function compare(
   topicSlug: string,
   idsParam: string,
   viewerId: string | null,
+  includeHidden = false,
 ): Promise<PerspectiveDto[]> {
-  const topic = await publishedTopicBySlug(topicSlug);
+  const topic = await publishedTopicBySlug(topicSlug, includeHidden);
 
   const ids = idsParam
     .split(',')
@@ -224,7 +226,7 @@ async function compare(
     }
   }
 
-  const rows = await perspectiveRepository.findByIdsVisible(ids);
+  const rows = await perspectiveRepository.findByIdsVisible(ids, includeHidden);
   if (rows.length !== ids.length || rows.some((row) => row.topic_id !== topic.id)) {
     throw invalidComparison('All perspectives must belong to this topic.');
   }

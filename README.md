@@ -21,6 +21,7 @@ This project is organized as an **npm workspaces monorepo**:
 - Perspectives per topic, including author attribution and sorting
 - Perspective upvotes with toggle support and self-vote prevention
 - Side-by-side comparison of selected perspectives
+- Content reporting and a moderator queue (reports, dismiss/hide/escalate)
 
 ## Not built yet (deferred)
 
@@ -28,7 +29,6 @@ This project is organized as an **npm workspaces monorepo**:
 - Search: typo tolerance and autocomplete
 - Search: caching
 - Profile
-- Reports and moderation
 - Admin dashboard
 - Audit log viewer
 - Expert fingerprint
@@ -36,6 +36,15 @@ This project is organized as an **npm workspaces monorepo**:
 - Topic merge/archive
 - Attachments
 - Forgot password
+
+## Deferred
+
+The following moderation scope is intentionally deferred:
+
+- Moderation and report-status emails
+- Audit log entries for moderator actions
+- Automated content screening
+- User warnings, suspensions and bans
 
 ## Prerequisites
 
