@@ -2,6 +2,7 @@ import type { PerspectiveCreateInput } from '@structured-qa/shared';
 import { db } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { userRepository } from '../repositories/userRepository';
+import { fingerprintRepository } from '../repositories/fingerprintRepository';
 import {
   perspectiveRepository,
   type PerspectiveRow,
@@ -17,6 +18,7 @@ export interface PerspectiveDto {
   id: string;
   topicId: string;
   authorUsername: string;
+  authorTopCategory: string | null;
   proposedSolution: string;
   explanation: string;
   advantages: string[];
@@ -92,10 +94,14 @@ async function toDtos(
   const voted = viewerId
     ? await perspectiveRepository.votedPerspectiveIds(viewerId, ids)
     : new Set<string>();
+  const authorLabels = await fingerprintRepository.topCategoryLabelsByUserIds([
+    ...new Set(rows.map((row) => row.author_id)),
+  ]);
   return rows.map((row) => ({
     id: row.id,
     topicId: row.topic_id,
     authorUsername: row.author_username,
+    authorTopCategory: authorLabels.get(row.author_id) ?? null,
     proposedSolution: row.proposed_solution,
     explanation: row.explanation,
     advantages: row.advantages,
@@ -141,10 +147,12 @@ async function create(
   }
 
   const author = await userRepository.findById(authorId);
+  const authorLabels = await fingerprintRepository.topCategoryLabelsByUserIds([authorId]);
   return {
     id: row.id,
     topicId: row.topic_id,
     authorUsername: author?.username ?? '',
+    authorTopCategory: authorLabels.get(authorId) ?? null,
     proposedSolution: row.proposed_solution,
     explanation: row.explanation,
     advantages: row.advantages,

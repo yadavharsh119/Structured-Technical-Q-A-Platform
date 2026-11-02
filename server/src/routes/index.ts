@@ -7,6 +7,7 @@ import perspectiveRoutes from './perspectiveRoutes';
 import { categoryRoutes, tagRoutes } from './taxonomyRoutes';
 import searchRoutes from './searchRoutes';
 import reportRoutes from './reportRoutes';
+import userRoutes from './userRoutes';
 
 const router = Router();
 
@@ -34,5 +35,8 @@ router.use('/search', searchRoutes);
 
 // Mount reports and the moderator queue at /api/reports (FR-MOD-01, FR-MOD-02)
 router.use('/reports', reportRoutes);
+
+// Mount expert fingerprints at /api/users (FR-EXP-01, FR-EXP-02)
+router.use('/users', userRoutes);
 
 export default router;

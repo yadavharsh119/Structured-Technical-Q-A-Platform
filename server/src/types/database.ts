@@ -263,6 +263,7 @@ export interface ExpertFingerprintsTable {
   upvote_total: Generated<number>;
   // numeric: node-postgres returns numeric values as strings
   score: Generated<string>;
+  rank: Generated<number>;
   calculated_at: Generated<Date>;
 }
 

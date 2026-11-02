@@ -75,4 +75,12 @@ export const userRepository = {
       .where('id', '=', id)
       .execute();
   },
+
+  async setFingerprintPublic(id: string, fingerprintPublic: boolean): Promise<void> {
+    await db
+      .updateTable('users')
+      .set({ fingerprint_public: fingerprintPublic })
+      .where('id', '=', id)
+      .execute();
+  },
 };

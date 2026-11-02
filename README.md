@@ -22,6 +22,7 @@ This project is organized as an **npm workspaces monorepo**:
 - Perspective upvotes with toggle support and self-vote prevention
 - Side-by-side comparison of selected perspectives
 - Content reporting and a moderator queue (reports, dismiss/hide/escalate)
+- Expert fingerprint: top categories per user, public/private visibility, daily recalculation
 
 ## Not built yet (deferred)
 
@@ -31,7 +32,6 @@ This project is organized as an **npm workspaces monorepo**:
 - Profile
 - Admin dashboard
 - Audit log viewer
-- Expert fingerprint
 - Perspective deletion requests
 - Topic merge/archive
 - Attachments
@@ -45,6 +45,9 @@ The following moderation scope is intentionally deferred:
 - Audit log entries for moderator actions
 - Automated content screening
 - User warnings, suspensions and bans
+- Expert fingerprint profile editing
+- Expert fingerprint caching
+- Configurable expert fingerprint weighting
 
 ## Prerequisites
 

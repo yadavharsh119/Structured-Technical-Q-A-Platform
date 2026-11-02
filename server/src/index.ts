@@ -2,10 +2,12 @@ import { app } from './app';
 import { config } from './config';
 import { logger } from './middleware/requestLogger';
 import { closeDatabaseConnection } from './config/database';
+import { startFingerprintScheduler } from './jobs/fingerprintScheduler';
 
 const server = app.listen(config.PORT, () => {
   logger.info(`Server running on port ${config.PORT} in ${config.NODE_ENV} mode`);
   logger.info(`Health check available at http://localhost:${config.PORT}/api/health`);
+  startFingerprintScheduler();
 });
 
 const gracefulShutdown = async (signal: string) => {

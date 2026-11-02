@@ -197,3 +197,6 @@ export * from './search';
 
 // Content reporting and the moderator queue (FR-MOD-01, FR-MOD-02).
 export * from './reports';
+
+// Expert fingerprint visibility (FR-EXP-01, FR-EXP-02).
+export * from './fingerprint';

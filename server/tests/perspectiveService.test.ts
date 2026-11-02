@@ -1,5 +1,6 @@
 import { perspectiveService } from '../src/services/perspectiveService';
 import { perspectiveRepository } from '../src/repositories/perspectiveRepository';
+import { fingerprintRepository } from '../src/repositories/fingerprintRepository';
 import { topicRepository } from '../src/repositories/topicRepository';
 import { userRepository } from '../src/repositories/userRepository';
 import type { PerspectiveRow } from '../src/repositories/perspectiveRepository';
@@ -43,9 +44,14 @@ jest.mock('../src/repositories/userRepository', () => ({
   userRepository: { findById: jest.fn() },
 }));
 
+jest.mock('../src/repositories/fingerprintRepository', () => ({
+  fingerprintRepository: { topCategoryLabelsByUserIds: jest.fn() },
+}));
+
 const mockedPerspective = perspectiveRepository as jest.Mocked<typeof perspectiveRepository>;
 const mockedTopic = topicRepository as jest.Mocked<typeof topicRepository>;
 const mockedUser = userRepository as jest.Mocked<typeof userRepository>;
+const mockedFingerprint = fingerprintRepository as jest.Mocked<typeof fingerprintRepository>;
 
 const AUTHOR = '11111111-1111-4111-8111-111111111111';
 const VOTER = '22222222-2222-4222-8222-222222222222';
@@ -115,6 +121,7 @@ beforeEach(() => {
     id: AUTHOR,
     username: 'alice',
   } as Awaited<ReturnType<typeof userRepository.findById>>);
+  mockedFingerprint.topCategoryLabelsByUserIds.mockResolvedValue(new Map());
 });
 
 describe('perspectiveService.create', () => {
