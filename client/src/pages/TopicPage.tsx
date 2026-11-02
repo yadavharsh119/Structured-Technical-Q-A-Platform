@@ -1,11 +1,12 @@
 import { useEffect, useState } from 'react';
 import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
-import { MessageSquare } from 'lucide-react';
+import { MessageSquare, Flag } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
 import { TopicHeader } from '../components/topic/TopicHeader';
 import { SourceQuestionCard } from '../components/topic/SourceQuestionCard';
 import { PerspectiveList } from '../components/topic/PerspectiveList';
 import { CompareBar } from '../components/topic/CompareBar';
+import { ReportModal } from '../components/moderation/ReportModal';
 import { EmptyState } from '../components/search/EmptyState';
 import { getTopic } from '../api/topics';
 import { listCategories } from '../api/taxonomy';
@@ -39,6 +40,12 @@ export function TopicPage() {
 
   const [selected, setSelected] = useState<string[]>([]);
   const [compareMessage, setCompareMessage] = useState<string | null>(null);
+
+  const [reportTarget, setReportTarget] = useState<{
+    type: 'topic' | 'perspective';
+    id: string;
+    label: string;
+  } | null>(null);
 
   const submitted = (location.state as { perspectiveSubmitted?: boolean } | null)
     ?.perspectiveSubmitted === true;
@@ -222,6 +229,8 @@ export function TopicPage() {
   const canSubmit = !archived && user !== null;
   const alreadySubmitted =
     user !== null && perspectives.some((p) => p.authorUsername === user.username);
+  const isOwnTopic =
+    user !== null && questions.some((q) => q.authorUsername === user.username);
   const compareHref = `/compare?topic=${encodeURIComponent(topic.slug)}&ids=${selected.join(',')}`;
 
   return (
@@ -281,6 +290,20 @@ export function TopicPage() {
                   className="inline-flex cursor-not-allowed items-center justify-center rounded-lg border border-line bg-white px-5 py-3 text-sm font-medium text-muted opacity-50"
                 >
                   Compare
+                </button>
+              )}
+
+              {user && !isOwnTopic && (
+                <button
+                  type="button"
+                  onClick={() =>
+                    setReportTarget({ type: 'topic', id: topic.id, label: topic.title })
+                  }
+                  data-testid="topic-report-button"
+                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-5 py-3 text-sm font-medium text-muted hover:bg-tint hover:text-red-700"
+                >
+                  <Flag className="h-4 w-4" aria-hidden="true" />
+                  Report Topic
                 </button>
               )}
 
@@ -391,6 +414,13 @@ export function TopicPage() {
                   onToggleVote={handleToggleVote}
                   selected={selected}
                   onToggleCompare={toggleCompare}
+                  onReport={(perspective) =>
+                    setReportTarget({
+                      type: 'perspective',
+                      id: perspective.id,
+                      label: perspective.proposedSolution,
+                    })
+                  }
                 />
               )}
             </div>
@@ -407,6 +437,15 @@ export function TopicPage() {
         }}
         message={compareMessage}
       />
+
+      {reportTarget && (
+        <ReportModal
+          targetType={reportTarget.type}
+          targetId={reportTarget.id}
+          targetLabel={reportTarget.label}
+          onClose={() => setReportTarget(null)}
+        />
+      )}
     </PageShell>
   );
 }

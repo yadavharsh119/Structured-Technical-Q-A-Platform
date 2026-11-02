@@ -115,6 +115,15 @@ export function Navbar() {
                   Review
                 </Link>
               )}
+              {canReview && (
+                <Link
+                  to="/moderation"
+                  data-testid="nav-moderation"
+                  className={`text-sm font-medium ${pathname === '/moderation' ? 'text-ink font-semibold' : 'text-secondary hover:text-black'}`}
+                >
+                  Moderation
+                </Link>
+              )}
               <span data-testid="nav-username" className="text-sm font-semibold text-ink">
                 @{user.username}
               </span>
@@ -232,6 +241,16 @@ export function Navbar() {
                         className={`text-sm font-medium ${pathname === '/admin/questions' ? 'text-ink font-semibold' : 'text-secondary hover:text-black'}`}
                       >
                         Review
+                      </Link>
+                    )}
+                    {canReview && (
+                      <Link
+                        to="/moderation"
+                        onClick={() => setOpen(false)}
+                        data-testid="nav-moderation-mobile"
+                        className={`text-sm font-medium ${pathname === '/moderation' ? 'text-ink font-semibold' : 'text-secondary hover:text-black'}`}
+                      >
+                        Moderation
                       </Link>
                     )}
                   </div>

@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown } from 'lucide-react';
+import { ChevronDown, Flag } from 'lucide-react';
 import type { Perspective } from '../../api/types';
 import { UpvoteButton } from './UpvoteButton';
 
@@ -12,6 +12,7 @@ interface Props {
   selected: boolean;
   compareDisabled: boolean;
   onToggleCompare: (id: string) => void;
+  onReport: (perspective: Perspective) => void;
 }
 
 function initials(name: string): string {
@@ -157,6 +158,17 @@ export function PerspectiveCard(p: Props) {
               />
               Select to compare
             </label>
+            {!p.isGuest && !p.isOwn && (
+              <button
+                type="button"
+                onClick={() => p.onReport(t)}
+                data-testid="perspective-report-button"
+                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-red-700"
+              >
+                <Flag className="h-3.5 w-3.5" aria-hidden="true" />
+                Report
+              </button>
+            )}
           </div>
         </div>
       </div>

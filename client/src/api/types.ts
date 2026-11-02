@@ -1,3 +1,5 @@
+import type { ModerationReportReason, ReportStatus } from '@structured-qa/shared';
+
 export interface Category {
   id: string;
   name: string;
@@ -69,4 +71,38 @@ export type PerspectiveSort = 'newest' | 'top';
 export interface PerspectiveVoteState {
   upvoteCount: number;
   hasUpvoted: boolean;
+}
+
+export interface ReportedTopic {
+  type: 'topic';
+  id: string;
+  title: string;
+  slug: string;
+  description: string;
+  hidden: boolean;
+}
+
+export interface ReportedPerspective {
+  type: 'perspective';
+  id: string;
+  topicId: string;
+  proposedSolution: string;
+  explanation: string;
+  authorUsername: string;
+  hidden: boolean;
+}
+
+export interface Report {
+  id: string;
+  reporter: {
+    id: string;
+    username: string;
+  };
+  targetType: 'topic' | 'perspective';
+  targetId: string;
+  reason: ModerationReportReason;
+  comment: string | null;
+  status: ReportStatus;
+  createdAt: string;
+  target: ReportedTopic | ReportedPerspective | null;
 }

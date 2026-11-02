@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 import {
   AlertCircle,
   ArrowUp,
@@ -7,49 +7,91 @@ import {
   FileText,
   Flag,
   MessageSquare,
-  ShieldAlert,
   User,
   X,
   XCircle,
 } from 'lucide-react';
-import { REPORT_REASONS, type ReportReason } from '@structured-qa/shared';
+import type {
+  ModerationReportReason,
+  ReportAction,
+  ReportStatus,
+} from '@structured-qa/shared';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
-import {
-  INITIAL_REPORTS,
-  REPORT_STATUSES,
-  type ContentReport,
-  type ReportStatus,
-} from '../data/mockReports';
+import { actOnReport, listReports } from '../api/reports';
+import type { Report } from '../api/types';
 
-const STATUS_BADGE: Record<ReportStatus, string> = {
-  Open: 'bg-amber-50 text-amber-800 border-amber-200',
-  'Under Review': 'bg-blue-50 text-blue-800 border-blue-200',
-  Resolved: 'bg-green-50 text-green-800 border-green-200',
-  Dismissed: 'bg-tint text-muted border-line',
+type StatusFilter = 'all' | ReportStatus;
+
+const STATUS_TABS: Array<{ id: StatusFilter; label: string }> = [
+  { id: 'all', label: 'All' },
+  { id: 'open', label: 'Open' },
+  { id: 'under_review', label: 'Under Review' },
+  { id: 'resolved', label: 'Resolved' },
+  { id: 'dismissed', label: 'Dismissed' },
+];
+
+const STATUS_LABELS: Record<ReportStatus, string> = {
+  open: 'Open',
+  under_review: 'Under Review',
+  resolved: 'Resolved',
+  dismissed: 'Dismissed',
 };
 
-const selectClass = 'h-11 rounded-lg border border-line bg-white px-3 text-sm font-medium text-ink';
+const STATUS_BADGE: Record<ReportStatus, string> = {
+  open: 'bg-amber-50 text-amber-800 border-amber-200',
+  under_review: 'bg-blue-50 text-blue-800 border-blue-200',
+  resolved: 'bg-green-50 text-green-800 border-green-200',
+  dismissed: 'bg-tint text-muted border-line',
+};
+
+const REASON_LABELS: Record<ModerationReportReason, string> = {
+  spam: 'Spam',
+  abusive: 'Offensive / Abusive',
+  duplicate: 'Duplicate',
+  misleading: 'Misleading / Incorrect',
+  plagiarism: 'Plagiarism',
+  other: 'Other',
+};
+
+const ACTION_COPY: Record<
+  ReportAction,
+  { title: string; body: string; confirm: string }
+> = {
+  dismiss: {
+    title: 'Dismiss report',
+    body: 'This closes the report without changing the reported content. The report will be marked as dismissed.',
+    confirm: 'Dismiss report',
+  },
+  hide: {
+    title: 'Hide content',
+    body: 'This removes the reported content from public view and marks the report as resolved.',
+    confirm: 'Hide content',
+  },
+  escalate: {
+    title: 'Escalate report',
+    body: 'This flags the report for an administrator and marks it as under review.',
+    confirm: 'Escalate report',
+  },
+};
 
 function formatDate(iso: string): string {
-  return new Date(`${iso}T00:00:00`).toLocaleDateString('en-US', {
+  return new Date(iso).toLocaleDateString('en-US', {
     month: 'short',
     day: 'numeric',
     year: 'numeric',
   });
 }
 
-function ContentTypeBadge({ type }: { type: ContentReport['contentType'] }) {
-  return (
-    <span className="inline-flex items-center gap-1 rounded-md border border-line bg-tint px-2 py-0.5 text-xs font-semibold text-ink">
-      {type === 'Perspective' ? (
-        <MessageSquare className="h-3 w-3" aria-hidden="true" />
-      ) : (
-        <FileText className="h-3 w-3" aria-hidden="true" />
-      )}
-      {type}
-    </span>
-  );
+function contentTitle(report: Report): string {
+  if (!report.target) return 'Reported content unavailable';
+  return report.target.type === 'topic'
+    ? report.target.title
+    : report.target.proposedSolution;
+}
+
+function isProcessed(status: ReportStatus): boolean {
+  return status === 'resolved' || status === 'dismissed';
 }
 
 function StatusBadge({ status }: { status: ReportStatus }) {
@@ -57,74 +99,104 @@ function StatusBadge({ status }: { status: ReportStatus }) {
     <span
       className={`inline-flex items-center rounded-md border px-2 py-0.5 text-xs font-semibold ${STATUS_BADGE[status]}`}
     >
-      {status}
+      {STATUS_LABELS[status]}
+    </span>
+  );
+}
+
+function TargetTypeBadge({ type }: { type: Report['targetType'] }) {
+  return (
+    <span className="inline-flex items-center gap-1 rounded-md border border-line bg-tint px-2 py-0.5 text-xs font-semibold text-ink">
+      {type === 'perspective' ? (
+        <MessageSquare className="h-3 w-3" aria-hidden="true" />
+      ) : (
+        <FileText className="h-3 w-3" aria-hidden="true" />
+      )}
+      {type === 'perspective' ? 'Perspective' : 'Topic'}
     </span>
   );
 }
 
 export function ModerationQueuePage() {
-  const [reports, setReports] = useState<ContentReport[]>(INITIAL_REPORTS);
-  const [statusFilter, setStatusFilter] = useState<'All' | ReportStatus>('All');
-  const [reasonFilter, setReasonFilter] = useState<'All' | ReportReason>('All');
-  const [selectedId, setSelectedId] = useState<string | null>(INITIAL_REPORTS[0]?.id ?? null);
-  const [hideTarget, setHideTarget] = useState<ContentReport | null>(null);
+  const [reports, setReports] = useState<Report[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
+  const [pendingAction, setPendingAction] = useState<{
+    report: Report;
+    action: ReportAction;
+  } | null>(null);
+  const [actionLoading, setActionLoading] = useState(false);
+  const [actionError, setActionError] = useState<string | null>(null);
   const [successBanner, setSuccessBanner] = useState<string | null>(null);
+
+  useEffect(() => {
+    let cancelled = false;
+    listReports().then((response) => {
+      if (cancelled) return;
+      if (response.success) {
+        setReports(response.data.reports);
+      } else {
+        setLoadError(response.error.message);
+      }
+      setIsLoading(false);
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, []);
 
   const filtered = useMemo(
     () =>
-      reports.filter(
-        (r) =>
-          (statusFilter === 'All' || r.status === statusFilter) &&
-          (reasonFilter === 'All' || r.reason === reasonFilter),
-      ),
-    [reports, statusFilter, reasonFilter],
+      statusFilter === 'all'
+        ? reports
+        : reports.filter((report) => report.status === statusFilter),
+    [reports, statusFilter],
   );
 
-  const selected = filtered.find((r) => r.id === selectedId) ?? filtered[0] ?? null;
-  const openCount = reports.filter((r) => r.status === 'Open').length;
-  const filtersActive = statusFilter !== 'All' || reasonFilter !== 'All';
-  const isProcessed = selected?.status === 'Resolved' || selected?.status === 'Dismissed';
+  const countFor = (status: StatusFilter) =>
+    status === 'all'
+      ? reports.length
+      : reports.filter((report) => report.status === status).length;
 
-  const clearFilters = () => {
-    setStatusFilter('All');
-    setReasonFilter('All');
+  const openCount = countFor('open');
+
+  const closeActionDialog = () => {
+    setPendingAction(null);
+    setActionError(null);
+    setActionLoading(false);
   };
 
-  const updateReport = (id: string, patch: Partial<ContentReport>, message: string) => {
-    setReports((prev) => prev.map((r) => (r.id === id ? { ...r, ...patch } : r)));
+  const handleConfirmAction = async () => {
+    if (!pendingAction) return;
+    const { report, action } = pendingAction;
+    setActionLoading(true);
+    setActionError(null);
+
+    const response = await actOnReport(report.id, action);
+    setActionLoading(false);
+
+    if (!response.success) {
+      setActionError(response.error.message);
+      return;
+    }
+
+    setReports((prev) =>
+      prev.map((item) => (item.id === response.data.report.id ? response.data.report : item)),
+    );
+    const message =
+      action === 'dismiss'
+        ? `Report on "${contentTitle(report)}" dismissed.`
+        : action === 'hide'
+          ? `Content "${contentTitle(report)}" hidden and report resolved.`
+          : `Report on "${contentTitle(report)}" escalated and marked under review.`;
     setSuccessBanner(message);
-  };
-
-  const handleDismiss = (report: ContentReport) => {
-    updateReport(
-      report.id,
-      { status: 'Dismissed' },
-      `Report on "${report.contentTitle}" dismissed. No action was taken.`,
-    );
-  };
-
-  const handleEscalate = (report: ContentReport) => {
-    updateReport(
-      report.id,
-      { status: 'Under Review', escalated: true },
-      `Report on "${report.contentTitle}" escalated to admin and marked Under Review.`,
-    );
-  };
-
-  const handleConfirmHide = () => {
-    if (!hideTarget) return;
-    updateReport(
-      hideTarget.id,
-      { status: 'Resolved', hidden: true },
-      `Content "${hideTarget.contentTitle}" hidden and report resolved. The author will be notified by email.`,
-    );
-    setHideTarget(null);
+    closeActionDialog();
   };
 
   return (
     <PageShell>
       <div className="pb-28">
-        {/* Header */}
         <section aria-labelledby="moderation-heading" className="border-b border-line bg-white">
           <div className="mx-auto max-w-content px-6 py-10 md:py-14">
             <div className="flex flex-wrap items-center justify-between gap-4">
@@ -142,7 +214,8 @@ export function ModerationQueuePage() {
                   Moderation Queue
                 </h1>
                 <p className="mt-2 text-sm text-body">
-                  Review reports against Topics and Perspectives. Dismiss, hide the content, or escalate to an admin.
+                  Review reports against topics and perspectives. Dismiss, hide the content, or
+                  escalate the report.
                 </p>
               </div>
 
@@ -156,11 +229,10 @@ export function ModerationQueuePage() {
           </div>
         </section>
 
-        {/* Main content */}
-        <section className="bg-canvas min-h-[500px]">
+        <section className="min-h-[500px] bg-canvas">
           <div className="mx-auto max-w-content px-6 py-8">
             {successBanner && (
-              <div className="mb-6 flex items-center justify-between rounded-xl border border-green-300 bg-green-50 p-4 text-sm text-green-900 shadow-xs">
+              <div className="mb-6 flex items-center justify-between rounded-xl border border-green-300 bg-green-50 p-4 text-sm text-green-900">
                 <div className="flex items-center gap-3">
                   <CheckCircle2 className="h-5 w-5 shrink-0 text-green-600" aria-hidden="true" />
                   <span>{successBanner}</span>
@@ -176,312 +248,258 @@ export function ModerationQueuePage() {
               </div>
             )}
 
-            {/* Filters */}
-            <div className="flex flex-wrap items-end gap-4">
-              <div className="flex items-center gap-2">
-                <label htmlFor="status-filter" className="text-sm font-medium text-muted">
-                  Status
-                </label>
-                <select
-                  id="status-filter"
-                  value={statusFilter}
-                  onChange={(e) => setStatusFilter(e.target.value as 'All' | ReportStatus)}
-                  className={selectClass}
-                >
-                  <option value="All">All statuses</option>
-                  {REPORT_STATUSES.map((s) => (
-                    <option key={s} value={s}>
-                      {s}
-                    </option>
-                  ))}
-                </select>
+            {isLoading ? (
+              <div
+                role="status"
+                className="rounded-xl border border-line bg-white p-10 text-center text-sm text-muted"
+              >
+                Loading reports...
               </div>
-
-              <div className="flex items-center gap-2">
-                <label htmlFor="reason-filter" className="text-sm font-medium text-muted">
-                  Reason
-                </label>
-                <select
-                  id="reason-filter"
-                  value={reasonFilter}
-                  onChange={(e) => setReasonFilter(e.target.value as 'All' | ReportReason)}
-                  className={selectClass}
-                >
-                  <option value="All">All reasons</option>
-                  {REPORT_REASONS.map((r) => (
-                    <option key={r} value={r}>
-                      {r}
-                    </option>
-                  ))}
-                </select>
-              </div>
-
-              {filtersActive && (
-                <button
-                  type="button"
-                  onClick={clearFilters}
-                  className="pb-2.5 text-sm font-medium text-secondary underline hover:text-black"
-                >
-                  Clear filters
-                </button>
-              )}
-            </div>
-
-            <p aria-live="polite" className="mt-4 text-base text-body">
-              <span className="font-semibold text-ink">{filtered.length} reports</span>
-            </p>
-
-            {filtered.length === 0 ? (
-              /* Empty state */
-              <div className="mt-6 rounded-xl border border-line bg-white p-12 text-center shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                <Flag className="mx-auto h-12 w-12 text-muted" aria-hidden="true" />
-                <h2 className="mt-4 font-serif text-xl font-semibold text-ink">No reports found</h2>
-                <p className="mx-auto mt-2 max-w-md text-sm text-muted">
-                  No reports match the selected filters. Try widening your search.
-                </p>
-                {filtersActive && (
-                  <div className="mt-6">
-                    <Button variant="outline" onClick={clearFilters} className="py-2 text-xs">
-                      Clear filters
-                    </Button>
-                  </div>
-                )}
+            ) : loadError ? (
+              <div
+                role="alert"
+                className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm font-medium text-red-800"
+              >
+                {loadError}
               </div>
             ) : (
-              /* Split view: list on the left, detail on the right */
-              <div className="mt-6 grid grid-cols-1 items-start gap-8 lg:grid-cols-12">
-                {/* Left: report list */}
-                <div className="space-y-3 lg:col-span-5">
-                  <h2 className="px-1 text-sm font-semibold uppercase tracking-wider text-muted">
-                    Reports ({filtered.length})
-                  </h2>
-                  <div className="space-y-3">
-                    {filtered.map((r) => {
-                      const isSelected = selected?.id === r.id;
-                      return (
-                        <div
-                          key={r.id}
-                          onClick={() => setSelectedId(r.id)}
-                          role="button"
-                          tabIndex={0}
-                          aria-pressed={isSelected}
-                          onKeyDown={(e) => {
-                            if (e.key === 'Enter' || e.key === ' ') {
-                              setSelectedId(r.id);
-                            }
-                          }}
-                          className={`cursor-pointer rounded-xl border p-5 transition-all ${
-                            isSelected
-                              ? 'border-black bg-white shadow-md ring-1 ring-black'
-                              : 'border-line bg-white hover:border-black/30 hover:bg-tint/20'
+              <>
+                <div
+                  role="tablist"
+                  aria-label="Filter reports by status"
+                  className="flex flex-wrap gap-2 border-b border-line pb-3"
+                >
+                  {STATUS_TABS.map((tab) => {
+                    const active = statusFilter === tab.id;
+                    return (
+                      <button
+                        key={tab.id}
+                        type="button"
+                        role="tab"
+                        aria-selected={active}
+                        onClick={() => setStatusFilter(tab.id)}
+                        className={`inline-flex items-center gap-2 rounded-lg border px-3.5 py-2 text-sm font-medium transition-colors ${
+                          active
+                            ? 'border-black bg-black text-white'
+                            : 'border-line bg-white text-secondary hover:bg-tint hover:text-ink'
+                        }`}
+                      >
+                        {tab.label}
+                        <span
+                          className={`rounded-md px-1.5 py-0.5 text-xs ${
+                            active ? 'bg-white/20 text-white' : 'bg-tint text-body'
                           }`}
                         >
-                          <div className="mb-2 flex items-center justify-between gap-2">
-                            <ContentTypeBadge type={r.contentType} />
-                            <span className="text-xs text-muted">{formatDate(r.reportedDate)}</span>
+                          {countFor(tab.id)}
+                        </span>
+                      </button>
+                    );
+                  })}
+                </div>
+
+                <p aria-live="polite" className="mt-4 text-sm text-body">
+                  <span className="font-semibold text-ink">{filtered.length}</span>{' '}
+                  {filtered.length === 1 ? 'report' : 'reports'}
+                </p>
+
+                {filtered.length === 0 ? (
+                  <div className="mt-6 rounded-xl border border-line bg-white p-12 text-center">
+                    <Flag className="mx-auto h-12 w-12 text-muted" aria-hidden="true" />
+                    <h2 className="mt-4 font-serif text-xl font-semibold text-ink">
+                      No reports found
+                    </h2>
+                    <p className="mx-auto mt-2 max-w-md text-sm text-muted">
+                      There are no reports with this status.
+                    </p>
+                  </div>
+                ) : (
+                  <ul className="mt-6 space-y-4">
+                    {filtered.map((report) => {
+                      const target = report.target;
+                      const title = contentTitle(report);
+                      const body = target
+                        ? target.type === 'topic'
+                          ? target.description
+                          : target.explanation
+                        : 'The reported content is no longer available.';
+                      const processed = isProcessed(report.status);
+
+                      return (
+                        <li
+                          key={report.id}
+                          className="rounded-xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]"
+                        >
+                          <div className="flex flex-wrap items-center justify-between gap-2">
+                            <div className="flex flex-wrap items-center gap-2">
+                              <StatusBadge status={report.status} />
+                              <TargetTypeBadge type={report.targetType} />
+                              {target?.hidden && (
+                                <span className="inline-flex items-center gap-1 rounded-md border border-line bg-tint px-2 py-0.5 text-xs font-medium text-muted">
+                                  <EyeOff className="h-3 w-3" aria-hidden="true" />
+                                  Hidden
+                                </span>
+                              )}
+                            </div>
+                            <time dateTime={report.createdAt} className="text-xs text-muted">
+                              Reported {formatDate(report.createdAt)}
+                            </time>
                           </div>
 
-                          <h3 className="line-clamp-2 text-base font-semibold text-ink">
-                            {r.contentTitle}
-                          </h3>
-                          <p className="mt-2 line-clamp-2 text-xs text-body">{r.contentPreview}</p>
+                          <div className="mt-4 grid grid-cols-1 gap-6 lg:grid-cols-3">
+                            <div className="lg:col-span-2">
+                              <h2 className="text-base font-semibold text-ink">{title}</h2>
+                              <p className="mt-2 whitespace-pre-line text-sm leading-relaxed text-body">
+                                {body}
+                              </p>
+                              {target?.type === 'topic' ? (
+                                <a
+                                  href={`/topics/${target.slug}`}
+                                  className="mt-2 inline-block text-sm font-medium text-ink underline hover:text-secondary"
+                                >
+                                  View topic
+                                </a>
+                              ) : target?.type === 'perspective' ? (
+                                <p className="mt-2 text-xs text-muted">
+                                  Perspective by{' '}
+                                  <strong className="text-ink">@{target.authorUsername}</strong>
+                                </p>
+                              ) : null}
+                            </div>
 
-                          <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                            <StatusBadge status={r.status} />
-                            <span className="rounded-md border border-line bg-white px-2 py-0.5 text-xs font-medium text-secondary">
-                              {r.reason}
-                            </span>
-                            {r.autoFlagged && (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-800">
-                                <ShieldAlert className="h-3 w-3" aria-hidden="true" /> Auto-flagged
-                              </span>
-                            )}
-                            {r.escalated && (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-                                <ArrowUp className="h-3 w-3" aria-hidden="true" /> Escalated
-                              </span>
-                            )}
-                            {r.hidden && (
-                              <span className="inline-flex items-center gap-1 rounded-md border border-line bg-tint px-2 py-0.5 text-xs font-medium text-muted">
-                                <EyeOff className="h-3 w-3" aria-hidden="true" /> Hidden
-                              </span>
-                            )}
+                            <div className="rounded-lg border border-line/60 bg-tint/20 p-4">
+                              <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
+                                Report
+                              </h3>
+                              <p className="mt-2 text-sm font-semibold text-ink">
+                                {REASON_LABELS[report.reason]}
+                              </p>
+                              <p className="mt-2 text-sm leading-relaxed text-body">
+                                {report.comment ?? 'No comment provided.'}
+                              </p>
+                              <p className="mt-3 flex items-center gap-1 border-t border-line/60 pt-2 text-xs text-muted">
+                                <User className="h-3 w-3" aria-hidden="true" />
+                                Reported by{' '}
+                                <strong className="text-ink">@{report.reporter.username}</strong>
+                              </p>
+                            </div>
                           </div>
 
-                          <div className="mt-3 flex items-center justify-between border-t border-line/50 pt-2 text-xs text-muted">
-                            <span className="flex items-center gap-1">
-                              <User className="h-3 w-3" /> @{r.reporterName}
-                            </span>
-                            <span className="flex items-center gap-1">
-                              <Flag className="h-3 w-3" /> {r.reason}
-                            </span>
+                          <div className="mt-4 flex flex-wrap items-center justify-end gap-2 border-t border-line pt-4">
+                            {processed ? (
+                              <span className="text-xs text-muted">
+                                This report has already been processed.
+                              </span>
+                            ) : (
+                              <>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPendingAction({ report, action: 'dismiss' })
+                                  }
+                                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3.5 py-2 text-xs font-semibold text-red-700 hover:bg-red-100"
+                                >
+                                  <XCircle className="h-4 w-4" aria-hidden="true" />
+                                  Dismiss
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() => setPendingAction({ report, action: 'hide' })}
+                                  className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2 text-xs font-semibold text-ink hover:bg-tint"
+                                >
+                                  <EyeOff className="h-4 w-4 text-secondary" aria-hidden="true" />
+                                  Hide
+                                </button>
+                                <button
+                                  type="button"
+                                  onClick={() =>
+                                    setPendingAction({ report, action: 'escalate' })
+                                  }
+                                  className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-black px-3.5 py-2 text-xs font-semibold text-white hover:bg-secondary"
+                                >
+                                  <ArrowUp className="h-4 w-4" aria-hidden="true" />
+                                  Escalate
+                                </button>
+                              </>
+                            )}
                           </div>
-                        </div>
+                        </li>
                       );
                     })}
-                  </div>
-                </div>
-
-                {/* Right: detail panel */}
-                <div className="sticky top-24 lg:col-span-7">
-                  {selected ? (
-                    <div className="space-y-6 rounded-xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
-                      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-line pb-4">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <StatusBadge status={selected.status} />
-                          <ContentTypeBadge type={selected.contentType} />
-                          {selected.autoFlagged && (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-purple-200 bg-purple-50 px-2 py-0.5 text-xs font-semibold text-purple-800">
-                              <ShieldAlert className="h-3 w-3" aria-hidden="true" /> Auto-flagged
-                            </span>
-                          )}
-                          {selected.escalated && (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-red-200 bg-red-50 px-2 py-0.5 text-xs font-semibold text-red-700">
-                              <ArrowUp className="h-3 w-3" aria-hidden="true" /> Escalated
-                            </span>
-                          )}
-                          {selected.hidden && (
-                            <span className="inline-flex items-center gap-1 rounded-md border border-line bg-tint px-2 py-0.5 text-xs font-medium text-muted">
-                              <EyeOff className="h-3 w-3" aria-hidden="true" /> Hidden
-                            </span>
-                          )}
-                        </div>
-                        <span className="text-xs text-muted">
-                          Reported on {formatDate(selected.reportedDate)} by{' '}
-                          <strong className="text-ink">@{selected.reporterName}</strong>
-                        </span>
-                      </div>
-
-                      <div>
-                        <h2 className="font-serif text-xl font-bold text-ink">
-                          {selected.contentTitle}
-                        </h2>
-                        <p className="mt-1 text-xs text-muted">
-                          Reported content ({selected.contentType})
-                        </p>
-                        <div className="mt-4 whitespace-pre-line rounded-lg border border-line/60 bg-tint/20 p-4 text-sm leading-relaxed text-body">
-                          {selected.contentBody}
-                        </div>
-                        <p className="mt-3 text-xs text-muted">
-                          Content author: <strong className="text-ink">@{selected.contentAuthor}</strong>
-                        </p>
-                      </div>
-
-                      <div className="border-t border-line pt-4">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
-                          Report reason
-                        </h3>
-                        <p className="mt-2 text-sm font-semibold text-ink">{selected.reason}</p>
-                        <h3 className="mt-4 text-xs font-semibold uppercase tracking-wider text-muted">
-                          Reporter comments
-                        </h3>
-                        <p className="mt-2 text-sm leading-relaxed text-body">
-                          {selected.reporterComments}
-                        </p>
-                      </div>
-
-                      <div className="space-y-3 border-t border-line pt-4">
-                        <h3 className="text-xs font-semibold uppercase tracking-wider text-muted">
-                          Moderation Actions
-                        </h3>
-                        {isProcessed ? (
-                          <p className="rounded-lg border border-line bg-tint/40 p-3 text-xs text-muted">
-                            This report has already been processed ({selected.status}).
-                          </p>
-                        ) : (
-                          <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
-                            <button
-                              type="button"
-                              onClick={() => handleDismiss(selected)}
-                              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-red-300 bg-red-50 px-3.5 py-2.5 text-xs font-semibold text-red-700 transition-colors hover:bg-red-100"
-                            >
-                              <XCircle className="h-4 w-4" /> Dismiss
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => setHideTarget(selected)}
-                              className="inline-flex items-center justify-center gap-1.5 rounded-lg border border-line bg-white px-3.5 py-2.5 text-xs font-semibold text-ink transition-colors hover:bg-tint"
-                            >
-                              <EyeOff className="h-4 w-4 text-secondary" /> Hide Content
-                            </button>
-
-                            <button
-                              type="button"
-                              onClick={() => handleEscalate(selected)}
-                              className="inline-flex items-center justify-center gap-1.5 rounded-lg bg-black px-3.5 py-2.5 text-xs font-semibold text-white transition-colors hover:bg-secondary"
-                            >
-                              <ArrowUp className="h-4 w-4" /> Escalate to Admin
-                            </button>
-                          </div>
-                        )}
-                      </div>
-                    </div>
-                  ) : (
-                    <div className="rounded-xl border border-line bg-white p-8 text-center text-muted">
-                      Select a report from the queue to view details and perform moderation actions.
-                    </div>
-                  )}
-                </div>
-              </div>
+                  </ul>
+                )}
+              </>
             )}
           </div>
         </section>
 
-        {/* MODAL: Hide Content confirmation */}
-        {hideTarget && (
+        {pendingAction && (
           <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
             <div
-              role="dialog"
+              role="alertdialog"
               aria-modal="true"
-              aria-labelledby="hide-content-title"
+              aria-labelledby="report-action-title"
               className="w-full max-w-lg rounded-xl border border-line bg-white p-6 shadow-xl"
             >
               <div className="flex items-center justify-between border-b border-line pb-3">
-                <div className="flex items-center gap-2 text-ink">
-                  <EyeOff className="h-5 w-5" />
-                  <h3 id="hide-content-title" className="font-serif text-lg font-bold">
-                    Hide Content
-                  </h3>
-                </div>
+                <h2
+                  id="report-action-title"
+                  className="font-serif text-lg font-bold text-ink"
+                >
+                  {ACTION_COPY[pendingAction.action].title}
+                </h2>
                 <button
                   type="button"
-                  onClick={() => setHideTarget(null)}
+                  onClick={closeActionDialog}
                   className="rounded-lg p-1 text-muted hover:bg-tint hover:text-black"
-                  aria-label="Close"
+                  aria-label="Close dialog"
                 >
                   <X className="h-5 w-5" />
                 </button>
               </div>
 
-              <div className="mt-4 space-y-4">
-                <div>
-                  <p className="text-xs text-muted">Content to hide:</p>
-                  <p className="mt-0.5 text-sm font-semibold text-ink">{hideTarget.contentTitle}</p>
-                  <p className="mt-1 text-xs text-muted">
-                    {hideTarget.contentType} by @{hideTarget.contentAuthor}
-                  </p>
+              <p className="mt-4 text-sm leading-relaxed text-body">
+                {ACTION_COPY[pendingAction.action].body}
+              </p>
+              <p className="mt-3 rounded-lg border border-line bg-tint/30 p-3 text-sm font-semibold text-ink">
+                {contentTitle(pendingAction.report)}
+              </p>
+
+              {pendingAction.action === 'hide' && (
+                <div className="mt-3 flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
+                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" aria-hidden="true" />
+                  <span>The content author will no longer be able to show this content.</span>
                 </div>
-                <p className="text-sm leading-relaxed text-body">
-                  Hiding this content removes it from public view and marks the report as Resolved.
-                </p>
-                <div className="flex items-center gap-2 rounded-lg border border-amber-300 bg-amber-50 p-3 text-xs text-amber-900">
-                  <AlertCircle className="h-4 w-4 shrink-0 text-amber-700" />
-                  <span>The author will be notified by email.</span>
+              )}
+
+              {actionError && (
+                <div
+                  role="alert"
+                  className="mt-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                >
+                  {actionError}
                 </div>
-              </div>
+              )}
 
               <div className="mt-6 flex justify-end gap-3 border-t border-line pt-3">
-                <Button variant="outline" onClick={() => setHideTarget(null)} className="py-2 text-xs">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={closeActionDialog}
+                  disabled={actionLoading}
+                  className="py-2 text-xs"
+                >
                   Cancel
                 </Button>
-                <button
+                <Button
                   type="button"
-                  onClick={handleConfirmHide}
-                  className="inline-flex items-center justify-center rounded-lg bg-black px-4 py-2 text-xs font-semibold text-white hover:bg-secondary"
+                  onClick={handleConfirmAction}
+                  disabled={actionLoading}
+                  className="py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
                 >
-                  Confirm &amp; Hide
-                </button>
+                  {actionLoading
+                    ? 'Working...'
+                    : ACTION_COPY[pendingAction.action].confirm}
+                </Button>
               </div>
             </div>
           </div>

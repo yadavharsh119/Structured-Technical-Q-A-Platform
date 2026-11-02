@@ -9,6 +9,7 @@ interface Props {
   onToggleVote: (id: string) => void;
   selected: string[];
   onToggleCompare: (id: string) => void;
+  onReport: (perspective: Perspective) => void;
 }
 
 export function PerspectiveList(p: Props) {
@@ -25,6 +26,7 @@ export function PerspectiveList(p: Props) {
             selected={p.selected.includes(t.id)}
             compareDisabled={!p.selected.includes(t.id) && p.selected.length >= 3}
             onToggleCompare={p.onToggleCompare}
+            onReport={p.onReport}
           />
         </li>
       ))}

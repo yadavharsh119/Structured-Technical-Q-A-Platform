@@ -92,6 +92,14 @@ export function App() {
           <Route path="/reset-password" element={<ResetPasswordPage />} />
           <Route path="/verify-email" element={<VerifyEmailPage />} />
           <Route
+            path="/moderation"
+            element={
+              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
+                <ModerationQueuePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
             path="/admin"
             element={
               <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
