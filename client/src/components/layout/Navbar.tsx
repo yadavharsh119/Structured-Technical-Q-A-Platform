@@ -124,9 +124,13 @@ export function Navbar() {
                   Moderation
                 </Link>
               )}
-              <span data-testid="nav-username" className="text-sm font-semibold text-ink">
+              <Link
+                to={`/users/${encodeURIComponent(user.id)}`}
+                data-testid="nav-username"
+                className="text-sm font-semibold text-ink hover:underline"
+              >
                 @{user.username}
-              </span>
+              </Link>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -230,9 +234,14 @@ export function Navbar() {
               {user ? (
                 <div className="flex flex-col gap-2">
                   <div className="flex items-center justify-between">
-                    <span data-testid="nav-username-mobile" className="text-sm font-semibold text-ink">
+                    <Link
+                      to={`/users/${encodeURIComponent(user.id)}`}
+                      onClick={() => setOpen(false)}
+                      data-testid="nav-username-mobile"
+                      className="text-sm font-semibold text-ink hover:underline"
+                    >
                       @{user.username}
-                    </span>
+                    </Link>
                     {canReview && (
                       <Link
                         to="/admin/questions"

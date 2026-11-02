@@ -9,6 +9,7 @@ export interface AuthUser {
   role: UserRole;
   status: UserStatus;
   emailVerified?: boolean;
+  fingerprintPublic?: boolean;
 }
 
 export function registerRequest(input: RegisterInput): Promise<ApiResponse<{ message: string }>> {

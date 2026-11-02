@@ -61,6 +61,14 @@ export function PerspectiveCard(p: Props) {
             <h3 id={`${t.id}-title`} className="text-base font-semibold text-ink">
               @{t.authorUsername}
             </h3>
+            {t.authorTopCategory && (
+              <span
+                title="Top expertise"
+                className="rounded-full border border-line bg-tint px-2 py-0.5 text-xs font-medium text-secondary"
+              >
+                {t.authorTopCategory}
+              </span>
+            )}
             {p.isOwn && (
               <span className="rounded-md bg-tint px-2 py-0.5 text-xs text-body">
                 Your perspective

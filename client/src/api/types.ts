@@ -55,6 +55,7 @@ export interface Perspective {
   id: string;
   topicId: string;
   authorUsername: string;
+  authorTopCategory: string | null;
   proposedSolution: string;
   explanation: string;
   advantages: string[];
