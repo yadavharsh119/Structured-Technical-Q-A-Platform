@@ -1,6 +1,6 @@
 import { useState } from 'react';
 import { Link, useLocation, useNavigate } from 'react-router-dom';
-import { Menu, X } from 'lucide-react';
+import { Menu, Search, X } from 'lucide-react';
 import { PLATFORM_NAME } from '../../data/mock';
 import { useAuth } from '../../context/AuthContext';
 
@@ -18,6 +18,17 @@ export function Navbar() {
   const onLanding = pathname === '/';
   const sectionHref = (hash: string) => (onLanding ? hash : `/${hash}`);
   const canReview = user?.role === 'moderator' || user?.role === 'admin';
+  const [navSearch, setNavSearch] = useState('');
+
+  const handleSearch = (e: React.FormEvent) => {
+    e.preventDefault();
+    const query = navSearch.trim();
+    if (query) {
+      navigate(`/search?q=${encodeURIComponent(query)}`);
+    } else {
+      navigate('/search');
+    }
+  };
 
   const handleLogout = async () => {
     await logout();
@@ -73,6 +84,25 @@ export function Navbar() {
             </li>
           ))}
         </ul>
+        <form
+          role="search"
+          onSubmit={handleSearch}
+          className="relative hidden md:block w-44 lg:w-56"
+        >
+          <label htmlFor="nav-search-input" className="sr-only">
+            Search topics
+          </label>
+          <input
+            id="nav-search-input"
+            type="search"
+            value={navSearch}
+            onChange={(e) => setNavSearch(e.target.value)}
+            placeholder="Search topics..."
+            data-testid="nav-search-input"
+            className="h-9 w-full rounded-lg border border-line bg-tint/40 pl-8 pr-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:bg-white focus:outline-none"
+          />
+          <Search className="absolute left-2.5 top-2.5 h-4 w-4 text-muted" aria-hidden="true" />
+        </form>
         <div className="hidden items-center gap-5 md:flex">
           {user ? (
             <div className="flex items-center gap-4">
@@ -128,6 +158,28 @@ export function Navbar() {
       </nav>
       {open && (
         <nav aria-label="Mobile" className="border-t border-line bg-white px-6 py-4 md:hidden">
+          <form
+            role="search"
+            onSubmit={(e) => {
+              handleSearch(e);
+              setOpen(false);
+            }}
+            className="relative mb-4"
+          >
+            <label htmlFor="nav-search-input-mobile" className="sr-only">
+              Search topics
+            </label>
+            <input
+              id="nav-search-input-mobile"
+              type="search"
+              value={navSearch}
+              onChange={(e) => setNavSearch(e.target.value)}
+              placeholder="Search topics..."
+              data-testid="nav-search-input-mobile"
+              className="h-10 w-full rounded-lg border border-line bg-tint/40 pl-9 pr-3 text-sm text-ink placeholder:text-muted focus:border-ink focus:bg-white focus:outline-none"
+            />
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted" aria-hidden="true" />
+          </form>
           <ul className="space-y-3">
             <li>
               <Link to="/topics" aria-current={pathname === '/topics' || pathname.startsWith('/topics/') ? 'page' : undefined} className={topicsClass(true)}>

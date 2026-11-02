@@ -1,5 +1,5 @@
 import { useEffect } from 'react';
-import { BrowserRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom';
+import { BrowserRouter, Route, Routes, useLocation } from 'react-router-dom';
 import { ProtectedRoute } from './components/ProtectedRoute';
 import { AuthProvider } from './context/AuthContext';
 import { LandingPage } from './pages/LandingPage';
@@ -19,6 +19,7 @@ import { QuestionReviewQueuePage } from './pages/QuestionReviewQueuePage';
 import { MyQuestionsPage } from './pages/MyQuestionsPage';
 import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { SearchPage } from './pages/SearchPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
 function ScrollToHash() {
@@ -31,11 +32,6 @@ function ScrollToHash() {
     }
   }, [pathname, hash]);
   return null;
-}
-
-function SearchRedirect() {
-  const { search } = useLocation();
-  return <Navigate to={`/topics${search}`} replace />;
 }
 
 const REVIEWER_ROLES = ['moderator', 'admin'] as const;
@@ -119,7 +115,7 @@ export function App() {
               </ProtectedRoute>
             }
           />
-          <Route path="/search" element={<SearchRedirect />} />
+          <Route path="/search" element={<SearchPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </AuthProvider>
