@@ -24,7 +24,9 @@ This project is organized as an **npm workspaces monorepo**:
 
 ## Not built yet (deferred)
 
-- Search and filters
+- Search: date range filter, author filter, upvote-count filter
+- Search: typo tolerance and autocomplete
+- Search: caching
 - Profile
 - Reports and moderation
 - Admin dashboard

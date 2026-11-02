@@ -5,6 +5,7 @@ import questionRoutes from './questionRoutes';
 import topicRoutes from './topicRoutes';
 import perspectiveRoutes from './perspectiveRoutes';
 import { categoryRoutes, tagRoutes } from './taxonomyRoutes';
+import searchRoutes from './searchRoutes';
 
 const router = Router();
 
@@ -26,5 +27,8 @@ router.use('/topics', topicRoutes);
 
 // Mount perspective and vote routes (full paths, mounted at /api)
 router.use(perspectiveRoutes);
+
+// Mount search route at /api/search (FR-SRCH-01, FR-SRCH-02)
+router.use('/search', searchRoutes);
 
 export default router;

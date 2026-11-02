@@ -192,4 +192,5 @@ export * from './questions';
 // perspectiveCodeSnippetSchema defined above.
 export * from './perspectives';
 
-
+// Search and filter (FR-SRCH-01, FR-SRCH-02).
+export * from './search';
