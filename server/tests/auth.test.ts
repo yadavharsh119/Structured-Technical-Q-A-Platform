@@ -9,7 +9,10 @@ import { emailService } from '../src/services/emailService';
 
 // Mock the EmailService so tests can read the raw verification token
 jest.mock('../src/services/emailService', () => ({
-  emailService: { sendVerificationEmail: jest.fn() },
+  emailService: {
+    sendVerificationEmail: jest.fn(),
+    sendPasswordResetEmail: jest.fn(),
+  },
 }));
 
 const app = createApp();
@@ -57,6 +60,16 @@ function latestVerificationToken(): string {
   if (!last) throw new Error('No verification email was captured');
   const match = last[1].match(/token=([^&]+)/);
   if (!match || !match[1]) throw new Error('No token found in verification link');
+  return match[1];
+}
+
+function latestResetToken(): string {
+  const mock = emailService.sendPasswordResetEmail as unknown as jest.Mock;
+  const calls = mock.mock.calls as Array<[string, string]>;
+  const last = calls[calls.length - 1];
+  if (!last) throw new Error('No password reset email was captured');
+  const match = last[1].match(/token=([^&]+)/);
+  if (!match || !match[1]) throw new Error('No token found in password reset link');
   return match[1];
 }
 
@@ -340,6 +353,149 @@ describe('Auth API', () => {
   });
 
   // 17
+  it('forgot-password for unknown email -> 200 same body as for a real one', async () => {
+    const unknown = await request(app)
+      .post('/api/auth/forgot-password')
+      .send({ email: `ghost_${runId}@example.com` });
+    expect(unknown.status).toBe(200);
+    expect(unknown.body).toHaveProperty('success', true);
+
+    const identity = uniqueIdentity();
+    expect((await register(identity)).status).toBe(201);
+    const real = await request(app)
+      .post('/api/auth/forgot-password')
+      .send({ email: identity.email });
+    expect(real.status).toBe(200);
+
+    expect(real.body).toEqual(unknown.body);
+  });
+
+  // 18
+  it('reset-password with a valid token -> new password works and the old one fails', async () => {
+    const { identity } = await createVerifiedUser();
+    const forgot = await request(app)
+      .post('/api/auth/forgot-password')
+      .send({ email: identity.email });
+    expect(forgot.status).toBe(200);
+
+    const newPassword = 'N3w!Passw0rdLong';
+    const reset = await request(app)
+      .post('/api/auth/reset-password')
+      .send({ token: latestResetToken(), newPassword });
+    expect(reset.status).toBe(200);
+    expect(reset.body).toHaveProperty('success', true);
+
+    const oldLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: identity.email, password: identity.password });
+    expect(oldLogin.status).toBe(401);
+
+    const newLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: identity.email, password: newPassword });
+    expect(newLogin.status).toBe(200);
+  });
+
+  // 19
+  it('reset token cannot be reused', async () => {
+    const { identity } = await createVerifiedUser();
+    await request(app).post('/api/auth/forgot-password').send({ email: identity.email });
+    const token = latestResetToken();
+
+    const first = await request(app)
+      .post('/api/auth/reset-password')
+      .send({ token, newPassword: 'N3w!Passw0rdLong' });
+    expect(first.status).toBe(200);
+
+    const reuse = await request(app)
+      .post('/api/auth/reset-password')
+      .send({ token, newPassword: 'An0ther!Passw0rd' });
+    expect(reuse.status).toBe(400);
+    expect(reuse.body.error.code).toBe('INVALID_OR_EXPIRED_TOKEN');
+  });
+
+  // 20
+  it('expired reset token -> 400', async () => {
+    const { identity } = await createVerifiedUser();
+    await request(app).post('/api/auth/forgot-password').send({ email: identity.email });
+    const token = latestResetToken();
+
+    await pool.query(
+      `UPDATE password_reset_tokens SET expires_at = now() - interval '1 minute'
+       WHERE used_at IS NULL AND user_id = (SELECT id FROM users WHERE email = $1)`,
+      [identity.email],
+    );
+
+    const res = await request(app)
+      .post('/api/auth/reset-password')
+      .send({ token, newPassword: 'N3w!Passw0rdLong' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('INVALID_OR_EXPIRED_TOKEN');
+  });
+
+  // 21
+  it('reset-password with a weak password -> 400 VALIDATION_ERROR', async () => {
+    const { identity } = await createVerifiedUser();
+    await request(app).post('/api/auth/forgot-password').send({ email: identity.email });
+
+    const res = await request(app)
+      .post('/api/auth/reset-password')
+      .send({ token: latestResetToken(), newPassword: 'weak1!' });
+    expect(res.status).toBe(400);
+    expect(res.body.error.code).toBe('VALIDATION_ERROR');
+    expect(res.body.error.message).toContain('newPassword');
+  });
+
+  // 22
+  it('reset-password revokes every existing session for the user', async () => {
+    const { identity, cookie: cookie1 } = await createVerifiedUser();
+    const secondLogin = await request(app)
+      .post('/api/auth/login')
+      .send({ identifier: identity.email, password: identity.password });
+    expect(secondLogin.status).toBe(200);
+    const cookie2 = cookieFrom(secondLogin);
+
+    await request(app).post('/api/auth/forgot-password').send({ email: identity.email });
+    const reset = await request(app)
+      .post('/api/auth/reset-password')
+      .send({ token: latestResetToken(), newPassword: 'N3w!Passw0rdLong' });
+    expect(reset.status).toBe(200);
+
+    const firstSession = await request(app).get('/api/auth/me').set('Cookie', cookie1);
+    expect(firstSession.status).toBe(401);
+    const secondSession = await request(app).get('/api/auth/me').set('Cookie', cookie2);
+    expect(secondSession.status).toBe(401);
+  });
+
+  // 23
+  it('resend-verification is throttled to once per 5 minutes per user', async () => {
+    const identity = uniqueIdentity();
+    expect((await register(identity)).status).toBe(201);
+
+    const mock = emailService.sendVerificationEmail as unknown as jest.Mock;
+    const before = mock.mock.calls.length;
+
+    const throttled = await request(app)
+      .post('/api/auth/resend-verification')
+      .send({ email: identity.email });
+    expect(throttled.status).toBe(200);
+    expect(mock.mock.calls.length).toBe(before);
+
+    // Move the latest token outside the 5-minute window
+    await pool.query(
+      `UPDATE email_verification_tokens SET created_at = now() - interval '6 minutes'
+       WHERE user_id = (SELECT id FROM users WHERE email = $1)`,
+      [identity.email],
+    );
+
+    const allowed = await request(app)
+      .post('/api/auth/resend-verification')
+      .send({ email: identity.email });
+    expect(allowed.status).toBe(200);
+    expect(mock.mock.calls.length).toBe(before + 1);
+  });
+
+  // 24
   it("requireRole('moderator') returns 403 for a registered user", async () => {
     // Temporary test-only app (mounted in this file, not in the server app)
     const guardApp = express();

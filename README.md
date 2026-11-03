@@ -15,6 +15,7 @@ This project is organized as an **npm workspaces monorepo**:
 ## What is built
 
 - Registration, email verification, login/logout with session cookies, and logout from all sessions
+- Account recovery: password reset, resend verification, and logout from all sessions
 - Asking questions, plus editing and deleting your own questions from My Questions
 - Reviewer queue for approving questions and creating a topic from an approved question
 - Topic list and topic pages
@@ -35,13 +36,14 @@ This project is organized as an **npm workspaces monorepo**:
 - Perspective deletion requests
 - Topic merge/archive
 - Attachments
-- Forgot password
 
 ## Deferred
 
 The following moderation scope is intentionally deferred:
 
 - Moderation and report-status emails
+- Multi-factor authentication (MFA)
+- Branded email templates beyond plain text
 - Audit log entries for moderator actions
 - Automated content screening
 - User warnings, suspensions and bans

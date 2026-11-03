@@ -1,8 +1,10 @@
 import { NextFunction, Request, Response } from 'express';
 import {
+  forgotPasswordSchema,
   loginSchema,
   registerSchema,
   resendVerificationSchema,
+  resetPasswordSchema,
   verifyEmailSchema,
 } from '@structured-qa/shared';
 import { ZodType } from 'zod';
@@ -70,6 +72,21 @@ export const resendVerification = asyncHandler(async (req, res) => {
   const input = parseBody(resendVerificationSchema, req.body);
   const { message } = await authService.resendVerification(input);
   res.status(200).json({ success: true, data: { message } });
+});
+
+export const forgotPassword = asyncHandler(async (req, res) => {
+  const input = parseBody(forgotPasswordSchema, req.body);
+  const { message } = await authService.forgotPassword(input);
+  res.status(200).json({ success: true, data: { message } });
+});
+
+export const resetPassword = asyncHandler(async (req, res) => {
+  const input = parseBody(resetPasswordSchema, req.body);
+  await authService.resetPassword(input);
+  res.status(200).json({
+    success: true,
+    data: { message: 'Password reset successfully. Please log in again.' },
+  });
 });
 
 export const login = asyncHandler(async (req, res) => {

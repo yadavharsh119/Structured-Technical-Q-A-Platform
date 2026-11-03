@@ -42,6 +42,14 @@ export const userRepository = {
       .execute();
   },
 
+  async updatePasswordHash(id: string, passwordHash: string): Promise<void> {
+    await db
+      .updateTable('users')
+      .set({ password_hash: passwordHash })
+      .where('id', '=', id)
+      .execute();
+  },
+
   async updateLoginSuccess(id: string): Promise<void> {
     await db
       .updateTable('users')

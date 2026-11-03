@@ -1,14 +1,17 @@
 import argon2 from 'argon2';
 import {
+  ForgotPasswordInput,
   LoginInput,
   RegisterInput,
   ResendVerificationInput,
+  ResetPasswordInput,
   VerifyEmailInput,
 } from '@structured-qa/shared';
 import { config } from '../config';
 import { AppError } from '../middleware/errorHandler';
 import { emailTokenRepository } from '../repositories/emailTokenRepository';
 import { loginAttemptRepository } from '../repositories/loginAttemptRepository';
+import { passwordResetTokenRepository } from '../repositories/passwordResetTokenRepository';
 import { sessionRepository } from '../repositories/sessionRepository';
 import { userRepository } from '../repositories/userRepository';
 import { UserRole, UserStatus } from '../types/database';
@@ -31,11 +34,14 @@ const DUMMY_PASSWORD_HASH =
   '$argon2id$v=19$m=19456,p=1,t=2$PrmK3fjJa70D/SSYV+aJ+A$bAzJbKDyl7x60ry6XackEmYhB8iFggM0sqiZKh9VMzw';
 
 const VERIFICATION_TOKEN_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+const PASSWORD_RESET_TOKEN_TTL_MS = 30 * 60 * 1000; // 30 minutes
 const RESEND_MIN_INTERVAL_MS = 5 * 60 * 1000; // 5 minutes
 const MAX_FAILED_ATTEMPTS = 5;
 const LOCKOUT_MS = 15 * 60 * 1000; // 15 minutes
 
 const RESEND_MESSAGE = 'If that email address exists, a verification link has been sent.';
+const FORGOT_PASSWORD_MESSAGE =
+  'If that email address exists, a password reset link has been sent.';
 
 export interface RegisteredUser {
   id: string;
@@ -68,6 +74,10 @@ function isUniqueViolation(err: unknown): boolean {
 
 function verificationLink(rawToken: string): string {
   return `${config.APP_BASE_URL}/verify-email?token=${rawToken}`;
+}
+
+function passwordResetLink(rawToken: string): string {
+  return `${config.APP_BASE_URL}/reset-password?token=${rawToken}`;
 }
 
 async function hashPassword(password: string): Promise<string> {
@@ -160,6 +170,49 @@ async function resendVerification(
   });
 
   return { message: RESEND_MESSAGE };
+}
+
+// Always returns the same result whether or not the account exists (SEC-03)
+async function forgotPassword(input: ForgotPasswordInput): Promise<{ message: string }> {
+  const user = await userRepository.findByEmail(input.email);
+  if (!user) {
+    return { message: FORGOT_PASSWORD_MESSAGE };
+  }
+
+  const rawToken = generateToken();
+  await passwordResetTokenRepository.create({
+    userId: user.id,
+    tokenHash: hashToken(rawToken),
+    expiresAt: new Date(Date.now() + PASSWORD_RESET_TOKEN_TTL_MS),
+  });
+  await emailService.sendPasswordResetEmail(user.email, passwordResetLink(rawToken));
+  await auditService.log({
+    actorUserId: user.id,
+    action: 'auth.password_reset_requested',
+    result: 'success',
+  });
+
+  return { message: FORGOT_PASSWORD_MESSAGE };
+}
+
+async function resetPassword(input: ResetPasswordInput): Promise<void> {
+  const record = await passwordResetTokenRepository.findValid(hashToken(input.token));
+  if (!record) {
+    throw new AppError('Invalid or expired reset token', 400, 'INVALID_OR_EXPIRED_TOKEN');
+  }
+
+  // Consume before updating so a token can never be used twice
+  await passwordResetTokenRepository.markUsed(record.id);
+
+  const passwordHash = await hashPassword(input.newPassword);
+  await userRepository.updatePasswordHash(record.user_id, passwordHash);
+  await sessionRepository.revokeAllForUser(record.user_id);
+  await userRepository.setSessionsValidAfter(record.user_id, new Date());
+  await auditService.log({
+    actorUserId: record.user_id,
+    action: 'auth.password_reset',
+    result: 'success',
+  });
 }
 
 async function login(
@@ -255,6 +308,8 @@ export const authService = {
   register,
   verifyEmail,
   resendVerification,
+  forgotPassword,
+  resetPassword,
   login,
   logout,
   logoutAll,
