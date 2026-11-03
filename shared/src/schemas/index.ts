@@ -195,3 +195,6 @@ export * from './reports';
 
 // Expert fingerprint visibility (FR-EXP-01, FR-EXP-02).
 export * from './fingerprint';
+
+// Profile management and privacy settings (FR-PROF-01, FR-PROF-02).
+export * from './profile';

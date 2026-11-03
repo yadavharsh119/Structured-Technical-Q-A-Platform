@@ -74,4 +74,14 @@ export const sessionRepository = {
       .where('revoked_at', 'is', null)
       .execute();
   },
+
+  async revokeOtherSessions(userId: string, currentSessionId: string): Promise<void> {
+    await db
+      .updateTable('sessions')
+      .set({ revoked_at: new Date() })
+      .where('user_id', '=', userId)
+      .where('id', '!=', currentSessionId)
+      .where('revoked_at', 'is', null)
+      .execute();
+  },
 };

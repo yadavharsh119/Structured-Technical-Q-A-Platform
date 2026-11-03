@@ -1,4 +1,4 @@
-import { Selectable } from 'kysely';
+import { Selectable, Updateable } from 'kysely';
 import { db } from '../config/database';
 import { UsersTable } from '../types/database';
 
@@ -6,6 +6,17 @@ export type NewUser = Pick<UsersTable, 'full_name' | 'username' | 'email' | 'pas
 
 // Select results unwrap Generated<>/ColumnType wrappers
 export type UserRow = Selectable<UsersTable>;
+
+export type UserProfileUpdate = Pick<
+  Updateable<UsersTable>,
+  'full_name' | 'username' | 'bio' | 'technical_skills' | 'areas_of_interest' | 'email_public'
+>;
+
+export interface UserStats {
+  questionsSubmitted: number;
+  perspectivesSubmitted: number;
+  totalUpvotesReceived: number;
+}
 
 export const userRepository = {
   findByEmail(email: string): Promise<UserRow | undefined> {
@@ -32,6 +43,44 @@ export const userRepository = {
 
   async create(data: NewUser): Promise<UserRow> {
     return db.insertInto('users').values(data).returningAll().executeTakeFirstOrThrow();
+  },
+
+  async updateProfile(id: string, data: UserProfileUpdate): Promise<void> {
+    if (Object.keys(data).length === 0) {
+      return;
+    }
+    await db.updateTable('users').set(data).where('id', '=', id).execute();
+  },
+
+  async getStats(userId: string): Promise<UserStats> {
+    const [questions, perspectives, upvotes] = await Promise.all([
+      db
+        .selectFrom('questions')
+        .select(({ fn }) => fn.count<number>('id').as('count'))
+        .where('author_id', '=', userId)
+        .executeTakeFirstOrThrow(),
+      db
+        .selectFrom('perspectives')
+        .select(({ fn }) => fn.count<number>('id').as('count'))
+        .where('author_id', '=', userId)
+        .where('status', '=', 'visible')
+        .where('hidden', '=', false)
+        .executeTakeFirstOrThrow(),
+      db
+        .selectFrom('perspectives')
+        .innerJoin('perspective_votes', 'perspective_votes.perspective_id', 'perspectives.id')
+        .select(({ fn }) => fn.count<number>('perspective_votes.user_id').as('count'))
+        .where('perspectives.author_id', '=', userId)
+        .where('perspectives.status', '=', 'visible')
+        .where('perspectives.hidden', '=', false)
+        .executeTakeFirstOrThrow(),
+    ]);
+
+    return {
+      questionsSubmitted: Number(questions.count),
+      perspectivesSubmitted: Number(perspectives.count),
+      totalUpvotesReceived: Number(upvotes.count),
+    };
   },
 
   async markEmailVerified(id: string): Promise<void> {

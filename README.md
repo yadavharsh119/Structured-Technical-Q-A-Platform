@@ -24,13 +24,13 @@ This project is organized as an **npm workspaces monorepo**:
 - Side-by-side comparison of selected perspectives
 - Content reporting and a moderator queue (reports, dismiss/hide/escalate)
 - Expert fingerprint: top categories per user, public/private visibility, daily recalculation
+- Profile management: public profiles, editable bio/skills/interests, email privacy, password change
 
 ## Not built yet (deferred)
 
 - Search: date range filter, author filter, upvote-count filter
 - Search: typo tolerance and autocomplete
 - Search: caching
-- Profile
 - Admin dashboard
 - Audit log viewer
 - Perspective deletion requests
@@ -50,6 +50,9 @@ The following moderation scope is intentionally deferred:
 - Expert fingerprint profile editing
 - Expert fingerprint caching
 - Configurable expert fingerprint weighting
+- Profile picture upload
+- Profile data export
+- Account deactivation
 
 ## Prerequisites
 
