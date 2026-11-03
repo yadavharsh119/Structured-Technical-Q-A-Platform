@@ -1,9 +1,10 @@
 import type {
   ApiResponse,
   ChangePasswordInput,
+  DeactivateAccountInput,
   ProfileUpdateInput,
 } from '@structured-qa/shared';
-import { apiRequest } from './client';
+import { apiDownload, apiRequest, type DownloadedFile } from './client';
 
 export interface FingerprintEntry {
   category: string;
@@ -72,5 +73,18 @@ export function updateFingerprintVisibility(
   return apiRequest('/users/me/fingerprint-visibility', {
     method: 'PATCH',
     body: JSON.stringify({ public: isPublic }),
+  });
+}
+
+export function exportMyData(): Promise<ApiResponse<DownloadedFile>> {
+  return apiDownload('/users/me/export', { method: 'POST' });
+}
+
+export function deactivateAccount(
+  input: DeactivateAccountInput,
+): Promise<ApiResponse<{ message: string }>> {
+  return apiRequest('/users/me/deactivate', {
+    method: 'POST',
+    body: JSON.stringify(input),
   });
 }

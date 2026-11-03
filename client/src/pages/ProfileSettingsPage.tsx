@@ -1,9 +1,10 @@
-import { useEffect, useState } from 'react';
-import { Link, Navigate } from 'react-router-dom';
-import { AlertCircle, CheckCircle2, ShieldCheck } from 'lucide-react';
+import { useEffect, useState, type FormEvent } from 'react';
+import { Link, Navigate, useNavigate } from 'react-router-dom';
+import { AlertCircle, CheckCircle2, Download, ShieldCheck, UserX, X } from 'lucide-react';
 import {
   PROFILE_BIO_MAX,
   changePasswordSchema,
+  deactivateAccountSchema,
   profileUpdateSchema,
 } from '@structured-qa/shared';
 import { PageShell } from '../components/layout/PageShell';
@@ -11,6 +12,8 @@ import { Button } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import {
   changePassword,
+  deactivateAccount,
+  exportMyData,
   getUserProfile,
   updateFingerprintVisibility,
   updateMyProfile,
@@ -96,7 +99,8 @@ function FingerprintToggle({
 }
 
 export function ProfileSettingsPage() {
-  const { user, refreshUser } = useAuth();
+  const { user, refreshUser, logout } = useAuth();
+  const navigate = useNavigate();
 
   const [loading, setLoading] = useState(true);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -125,6 +129,14 @@ export function ProfileSettingsPage() {
   const [savingFingerprint, setSavingFingerprint] = useState(false);
   const [fingerprintError, setFingerprintError] = useState<string | null>(null);
   const [fingerprintSuccess, setFingerprintSuccess] = useState<string | null>(null);
+
+  const [exportingData, setExportingData] = useState(false);
+  const [exportError, setExportError] = useState<string | null>(null);
+
+  const [deactivateOpen, setDeactivateOpen] = useState(false);
+  const [deactivatePassword, setDeactivatePassword] = useState('');
+  const [deactivateError, setDeactivateError] = useState<string | null>(null);
+  const [deactivating, setDeactivating] = useState(false);
 
   useEffect(() => {
     setFingerprintPublic(user?.fingerprintPublic !== false);
@@ -260,6 +272,56 @@ export function ProfileSettingsPage() {
     } else {
       setFingerprintError(response.error.message);
     }
+  };
+
+  const handleExport = async () => {
+    if (exportingData) return;
+    setExportError(null);
+    setExportingData(true);
+    const response = await exportMyData();
+    setExportingData(false);
+
+    if (!response.success) {
+      setExportError(response.error.message);
+      return;
+    }
+
+    const url = URL.createObjectURL(response.data.blob);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = response.data.filename;
+    document.body.appendChild(link);
+    link.click();
+    link.remove();
+    URL.revokeObjectURL(url);
+  };
+
+  const handleDeactivate = async (event: FormEvent) => {
+    event.preventDefault();
+    setDeactivateError(null);
+
+    const parsed = deactivateAccountSchema.safeParse({
+      password: deactivatePassword,
+      confirm: true,
+    });
+    if (!parsed.success) {
+      setDeactivateError(parsed.error.issues[0]?.message ?? 'Please check your password.');
+      return;
+    }
+
+    setDeactivating(true);
+    const response = await deactivateAccount(parsed.data);
+    setDeactivating(false);
+
+    if (!response.success) {
+      setDeactivateError(response.error.message);
+      return;
+    }
+
+    setDeactivateOpen(false);
+    setDeactivatePassword('');
+    await logout();
+    navigate('/', { replace: true });
   };
 
   if (loading) {
@@ -653,9 +715,157 @@ export function ProfileSettingsPage() {
                 </Button>
               </div>
             </form>
+
+            <div className="rounded-xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+              <div className="flex items-center gap-2 border-b border-line pb-3">
+                <Download className="h-5 w-5 text-ink" aria-hidden="true" />
+                <h2 className="font-serif text-lg font-semibold text-ink">Data &amp; account</h2>
+              </div>
+
+              <div className="mt-5 flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="text-sm font-semibold text-ink">Download my data</p>
+                  <p className="mt-0.5 text-xs text-muted">
+                    Get a ZIP archive of your profile, questions, perspectives, and votes.
+                  </p>
+                </div>
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={handleExport}
+                  disabled={exportingData}
+                  className="shrink-0 py-2.5 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                  data-testid="button-export-data"
+                >
+                  {exportingData ? 'Preparing download...' : 'Download my data'}
+                </Button>
+              </div>
+
+              {exportError && (
+                <div
+                  role="alert"
+                  data-testid="profile-settings-export-error"
+                  className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{exportError}</span>
+                </div>
+              )}
+
+              <div className="mt-6 border-t border-line pt-6">
+                <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                  <div>
+                    <p className="text-sm font-semibold text-ink">Deactivate account</p>
+                    <p className="mt-0.5 text-xs text-muted">
+                      Your personal information is removed and your posts stay under an anonymous
+                      name. This cannot be undone.
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    onClick={() => {
+                      setDeactivatePassword('');
+                      setDeactivateError(null);
+                      setDeactivateOpen(true);
+                    }}
+                    className="shrink-0 border-red-300 py-2.5 text-xs text-red-700 hover:bg-red-50"
+                    data-testid="button-open-deactivate"
+                  >
+                    <UserX className="mr-2 h-4 w-4" aria-hidden="true" />
+                    Deactivate account
+                  </Button>
+                </div>
+              </div>
+            </div>
           </div>
         </section>
       </div>
+
+      {deactivateOpen && (
+        <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="deactivate-account-title"
+            data-testid="dialog-deactivate-account"
+            className="w-full max-w-md rounded-xl border border-line bg-white p-6 shadow-xl"
+          >
+            <div className="flex items-center justify-between border-b border-line pb-3">
+              <h2
+                id="deactivate-account-title"
+                className="font-serif text-lg font-bold text-ink"
+              >
+                Deactivate account?
+              </h2>
+              <button
+                type="button"
+                onClick={() => setDeactivateOpen(false)}
+                className="rounded-lg p-1 text-muted hover:bg-tint hover:text-black"
+                aria-label="Close dialog"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            <div className="mt-3 space-y-2 text-sm text-body">
+              <p>Your personal information will be removed from your account.</p>
+              <p>Your posts will remain visible under an anonymous name.</p>
+              <p className="font-semibold text-red-700">This cannot be undone.</p>
+            </div>
+
+            <form onSubmit={handleDeactivate} noValidate>
+              <div className="mt-4">
+                <label htmlFor="deactivate-password" className={labelClass}>
+                  Enter your password to confirm
+                </label>
+                <input
+                  id="deactivate-password"
+                  type="password"
+                  value={deactivatePassword}
+                  onChange={(event) => setDeactivatePassword(event.target.value)}
+                  className={inputClass}
+                  autoComplete="current-password"
+                  data-testid="input-deactivate-password"
+                  required
+                />
+              </div>
+
+              {deactivateError && (
+                <div
+                  role="alert"
+                  data-testid="profile-settings-deactivate-error"
+                  className="mt-4 flex items-start gap-2 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800"
+                >
+                  <AlertCircle className="h-4 w-4 shrink-0" aria-hidden="true" />
+                  <span>{deactivateError}</span>
+                </div>
+              )}
+
+              <div className="mt-6 flex justify-end gap-3 border-t border-line pt-4">
+                <Button
+                  type="button"
+                  variant="outline"
+                  onClick={() => setDeactivateOpen(false)}
+                  disabled={deactivating}
+                  data-testid="button-cancel-deactivate"
+                  className="py-2 text-xs disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  Cancel
+                </Button>
+                <Button
+                  type="submit"
+                  disabled={deactivating}
+                  data-testid="button-confirm-deactivate"
+                  className="bg-red-600 py-2 text-xs hover:bg-red-700 disabled:cursor-not-allowed disabled:opacity-60"
+                >
+                  {deactivating ? 'Deactivating...' : 'Deactivate account'}
+                </Button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
     </PageShell>
   );
 }
