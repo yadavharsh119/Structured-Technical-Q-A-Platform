@@ -131,6 +131,13 @@ export function Navbar() {
               >
                 @{user.username}
               </Link>
+              <Link
+                to="/settings"
+                data-testid="nav-settings"
+                className={pageClass('/settings', false)}
+              >
+                Settings
+              </Link>
               <button
                 type="button"
                 onClick={handleLogout}
@@ -263,6 +270,14 @@ export function Navbar() {
                       </Link>
                     )}
                   </div>
+                  <Link
+                    to="/settings"
+                    onClick={() => setOpen(false)}
+                    data-testid="nav-settings-mobile"
+                    className={pageClass('/settings', true)}
+                  >
+                    Settings
+                  </Link>
                   <button
                     type="button"
                     onClick={handleLogout}

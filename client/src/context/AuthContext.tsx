@@ -3,6 +3,7 @@ import type { ReactNode } from 'react';
 import type { ApiResponse, LoginInput, RegisterInput } from '@structured-qa/shared';
 import {
   loginRequest,
+  logoutAllRequest,
   logoutRequest,
   meRequest,
   registerRequest,
@@ -15,6 +16,7 @@ interface AuthContextValue {
   login: (input: LoginInput) => Promise<ApiResponse<{ user: AuthUser }>>;
   register: (input: RegisterInput) => Promise<ApiResponse<{ message: string }>>;
   logout: () => Promise<void>;
+  logoutAll: () => Promise<ApiResponse<{ message: string }>>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -54,9 +56,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setUser(null);
   }, []);
 
+  const logoutAll = useCallback(async () => {
+    const response = await logoutAllRequest();
+    if (response.success) {
+      setUser(null);
+    }
+    return response;
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout }),
-    [user, loading, login, register, logout],
+    () => ({ user, loading, login, register, logout, logoutAll }),
+    [user, loading, login, register, logout, logoutAll],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

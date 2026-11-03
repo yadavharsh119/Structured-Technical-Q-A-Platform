@@ -4,6 +4,7 @@ import { Eye, EyeOff } from 'lucide-react';
 import { loginSchema } from '@structured-qa/shared';
 import { PageShell } from '../components/layout/PageShell';
 import { Button } from '../components/ui/Button';
+import { resendVerificationRequest } from '../api/auth';
 import { useAuth } from '../context/AuthContext';
 import { fieldErrorsFromIssues } from '../lib/fieldErrors';
 
@@ -32,10 +33,17 @@ export function LoginPage() {
   const [fieldErrors, setFieldErrors] = useState<Record<string, string>>({});
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [unverified, setUnverified] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resendNotice, setResendNotice] = useState<string | null>(null);
+  const [resendError, setResendError] = useState<string | null>(null);
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     setError(null);
+    setUnverified(false);
+    setResendNotice(null);
+    setResendError(null);
 
     const parsed = loginSchema.safeParse({ identifier, password });
     if (!parsed.success) {
@@ -50,6 +58,22 @@ export function LoginPage() {
       navigate(from ?? '/topics', { replace: true });
     } else {
       setError(ERROR_MESSAGES[response.error.code] ?? response.error.message);
+      setUnverified(response.error.code === 'EMAIL_NOT_VERIFIED');
+    }
+  };
+
+  const handleResendVerification = async () => {
+    const email = identifier.trim();
+    if (!email || resending) return;
+    setResending(true);
+    setResendNotice(null);
+    setResendError(null);
+    const response = await resendVerificationRequest(email);
+    setResending(false);
+    if (response.success) {
+      setResendNotice(response.data.message);
+    } else {
+      setResendError(response.error.message);
     }
   };
 
@@ -81,7 +105,39 @@ export function LoginPage() {
               data-testid="error-login"
               className="mt-6 rounded-lg bg-red-50 p-3.5 text-sm font-medium text-red-700"
             >
-              {error}
+              <p>{error}</p>
+              {unverified && (
+                <div className="mt-3">
+                  {resendNotice ? (
+                    <p
+                      role="status"
+                      data-testid="login-resend-success"
+                      className="text-xs font-semibold text-green-700"
+                    >
+                      {resendNotice}
+                    </p>
+                  ) : (
+                    <button
+                      type="button"
+                      onClick={handleResendVerification}
+                      disabled={resending}
+                      data-testid="link-login-resend-verification"
+                      className="text-sm font-semibold underline hover:text-red-900 disabled:cursor-not-allowed disabled:opacity-60"
+                    >
+                      {resending ? 'Sending...' : 'Resend verification email'}
+                    </button>
+                  )}
+                  {resendError && (
+                    <p
+                      role="alert"
+                      data-testid="error-login-resend"
+                      className="mt-2 text-xs font-semibold text-red-700"
+                    >
+                      {resendError}
+                    </p>
+                  )}
+                </div>
+              )}
             </div>
           )}
 
@@ -108,9 +164,18 @@ export function LoginPage() {
             </div>
 
             <div>
-              <label htmlFor="password" className={labelClass}>
-                Password
-              </label>
+              <div className="mb-1 flex items-center justify-between gap-3">
+                <label htmlFor="password" className="block text-sm font-semibold text-ink">
+                  Password
+                </label>
+                <Link
+                  to="/forgot-password"
+                  data-testid="link-login-forgot-password"
+                  className="text-xs font-semibold text-ink underline hover:text-black"
+                >
+                  Forgot password?
+                </Link>
+              </div>
               <div className="relative">
                 <input
                   id="password"
