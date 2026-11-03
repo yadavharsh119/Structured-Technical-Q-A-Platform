@@ -46,6 +46,31 @@ export function SettingsPage() {
           </p>
 
           <div className="mt-8 max-w-2xl rounded-xl border border-line bg-tint/20 p-6">
+            <div>
+              <h2 className="text-base font-semibold text-ink">Public profile</h2>
+              <p className="mt-1 text-sm text-body">
+                Edit your display name, bio, skills, interests, and email visibility.
+              </p>
+            </div>
+
+            <div className="mt-5 flex flex-col gap-3 sm:flex-row sm:items-center">
+              <Link
+                to="/settings/profile"
+                data-testid="link-settings-profile"
+                className="inline-flex items-center justify-center rounded-lg bg-black px-5 py-3 text-sm font-medium text-white transition-colors hover:bg-secondary"
+              >
+                Edit profile
+              </Link>
+              <Link
+                to={`/users/${encodeURIComponent(user.id)}`}
+                className="text-sm font-medium text-muted underline hover:text-ink"
+              >
+                View public profile
+              </Link>
+            </div>
+          </div>
+
+          <div className="mt-6 max-w-2xl rounded-xl border border-line bg-tint/20 p-6">
             <div className="flex items-start gap-3">
               <ShieldCheck className="mt-0.5 h-5 w-5 shrink-0 text-ink" aria-hidden="true" />
               <div>

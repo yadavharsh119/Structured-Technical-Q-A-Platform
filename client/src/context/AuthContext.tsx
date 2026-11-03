@@ -17,6 +17,7 @@ interface AuthContextValue {
   register: (input: RegisterInput) => Promise<ApiResponse<{ message: string }>>;
   logout: () => Promise<void>;
   logoutAll: () => Promise<ApiResponse<{ message: string }>>;
+  refreshUser: () => Promise<ApiResponse<{ user: AuthUser }>>;
 }
 
 const AuthContext = createContext<AuthContextValue | undefined>(undefined);
@@ -64,9 +65,17 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     return response;
   }, []);
 
+  const refreshUser = useCallback(async () => {
+    const response = await meRequest();
+    if (response.success) {
+      setUser(response.data.user);
+    }
+    return response;
+  }, []);
+
   const value = useMemo(
-    () => ({ user, loading, login, register, logout, logoutAll }),
-    [user, loading, login, register, logout, logoutAll],
+    () => ({ user, loading, login, register, logout, logoutAll, refreshUser }),
+    [user, loading, login, register, logout, logoutAll, refreshUser],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

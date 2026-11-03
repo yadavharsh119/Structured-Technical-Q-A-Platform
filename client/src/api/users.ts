@@ -1,4 +1,8 @@
-import type { ApiResponse } from '@structured-qa/shared';
+import type {
+  ApiResponse,
+  ChangePasswordInput,
+  ProfileUpdateInput,
+} from '@structured-qa/shared';
 import { apiRequest } from './client';
 
 export interface FingerprintEntry {
@@ -11,6 +15,49 @@ export interface FingerprintEntry {
 
 export interface FingerprintVisibility {
   fingerprintPublic: boolean;
+}
+
+export interface UserProfileStats {
+  questionsSubmitted: number;
+  perspectivesSubmitted: number;
+  totalUpvotesReceived: number;
+}
+
+export interface UserProfile {
+  id: string;
+  username: string;
+  fullName: string;
+  bio: string | null;
+  skills: string[];
+  interests: string[];
+  joinedAt: string;
+  emailPublic: boolean;
+  email?: string;
+  stats: UserProfileStats;
+}
+
+export function getUserProfile(
+  userId: string,
+): Promise<ApiResponse<{ user: UserProfile }>> {
+  return apiRequest(`/users/${encodeURIComponent(userId)}`);
+}
+
+export function updateMyProfile(
+  input: ProfileUpdateInput,
+): Promise<ApiResponse<{ user: UserProfile }>> {
+  return apiRequest('/users/me', {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function changePassword(
+  input: ChangePasswordInput,
+): Promise<ApiResponse<{ message: string }>> {
+  return apiRequest('/users/me/change-password', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }
 
 export function getUserFingerprint(

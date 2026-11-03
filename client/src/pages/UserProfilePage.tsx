@@ -1,13 +1,15 @@
 import { useEffect, useState } from 'react';
-import { useLocation, useParams } from 'react-router-dom';
-import { Fingerprint, ShieldCheck } from 'lucide-react';
+import { Link, useLocation, useParams } from 'react-router-dom';
+import { Fingerprint, Mail, ShieldCheck } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
 import { useAuth } from '../context/AuthContext';
 import { meRequest } from '../api/auth';
 import {
   getUserFingerprint,
+  getUserProfile,
   updateFingerprintVisibility,
   type FingerprintEntry,
+  type UserProfile,
 } from '../api/users';
 
 const UUID_RE = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
@@ -42,20 +44,43 @@ function VisibilityToggle({
   );
 }
 
+function TagList({ items, emptyLabel }: { items: string[]; emptyLabel: string }) {
+  if (items.length === 0) {
+    return <p className="mt-2 text-sm text-muted">{emptyLabel}</p>;
+  }
+
+  return (
+    <ul className="mt-2 flex flex-wrap gap-2">
+      {items.map((item) => (
+        <li
+          key={item}
+          className="rounded-full border border-line bg-tint/60 px-3 py-1 text-xs font-medium text-ink"
+        >
+          {item}
+        </li>
+      ))}
+    </ul>
+  );
+}
+
 export function UserProfilePage() {
   const { id = '' } = useParams();
   const { user } = useAuth();
   const location = useLocation();
 
+  const [profile, setProfile] = useState<UserProfile | null>(null);
   const [fingerprint, setFingerprint] = useState<FingerprintEntry[]>([]);
-  const [isLoading, setIsLoading] = useState(true);
-  const [isPrivate, setIsPrivate] = useState(false);
-  const [error, setError] = useState<string | null>(null);
+  const [isProfileLoading, setIsProfileLoading] = useState(true);
+  const [isFingerprintLoading, setIsFingerprintLoading] = useState(true);
+  const [isFingerprintPrivate, setIsFingerprintPrivate] = useState(false);
+  const [profileError, setProfileError] = useState<string | null>(null);
+  const [fingerprintError, setFingerprintError] = useState<string | null>(null);
 
   const isOwnProfile = user !== null && user.id === id;
   const stateUsername = (location.state as { username?: string } | null)?.username;
   const routeUsername = UUID_RE.test(id) ? null : id;
-  const username = isOwnProfile ? user.username : stateUsername ?? routeUsername;
+  const username =
+    profile?.username ?? (isOwnProfile ? user.username : stateUsername ?? routeUsername);
 
   const [isPublic, setIsPublic] = useState(user?.fingerprintPublic !== false);
   const [isSavingVisibility, setIsSavingVisibility] = useState(false);
@@ -78,21 +103,56 @@ export function UserProfilePage() {
 
   useEffect(() => {
     let cancelled = false;
-    setIsLoading(true);
-    setIsPrivate(false);
-    setError(null);
+    setProfile(null);
+    setProfileError(null);
+
+    if (!UUID_RE.test(id)) {
+      setIsProfileLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
+
+    setIsProfileLoading(true);
+    getUserProfile(id).then((response) => {
+      if (cancelled) return;
+      if (response.success) {
+        setProfile(response.data.user);
+      } else {
+        setProfileError(response.error.message);
+      }
+      setIsProfileLoading(false);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [id]);
+
+  useEffect(() => {
+    let cancelled = false;
+    setIsFingerprintLoading(true);
+    setIsFingerprintPrivate(false);
+    setFingerprintError(null);
     setFingerprint([]);
+
+    if (!UUID_RE.test(id)) {
+      setIsFingerprintLoading(false);
+      return () => {
+        cancelled = true;
+      };
+    }
 
     getUserFingerprint(id).then((response) => {
       if (cancelled) return;
       if (response.success) {
         setFingerprint(response.data.fingerprint);
       } else if (response.error.code === 'FINGERPRINT_NOT_FOUND') {
-        setIsPrivate(true);
+        setIsFingerprintPrivate(true);
       } else {
-        setError(response.error.message);
+        setFingerprintError(response.error.message);
       }
-      setIsLoading(false);
+      setIsFingerprintLoading(false);
     });
 
     return () => {
@@ -114,7 +174,7 @@ export function UserProfilePage() {
     }
   };
 
-  if (isLoading) {
+  if (isProfileLoading) {
     return (
       <PageShell>
         <div
@@ -134,28 +194,7 @@ export function UserProfilePage() {
     );
   }
 
-  if (isPrivate) {
-    return (
-      <PageShell>
-        <section aria-labelledby="private-profile-heading" className="bg-white">
-          <div className="mx-auto max-w-content px-6 py-16 text-center md:py-24">
-            <Fingerprint className="mx-auto h-8 w-8 text-deco" aria-hidden="true" />
-            <h1
-              id="private-profile-heading"
-              className="mt-3 font-serif text-[30px] leading-[1.2] text-ink md:text-[40px]"
-            >
-              This profile is private
-            </h1>
-            <p className="mx-auto mt-3 max-w-md text-sm text-body">
-              This user has chosen to keep their Expert Fingerprint hidden.
-            </p>
-          </div>
-        </section>
-      </PageShell>
-    );
-  }
-
-  if (error) {
+  if (profileError) {
     return (
       <PageShell>
         <div className="mx-auto max-w-content px-6 py-16 md:py-24">
@@ -164,12 +203,19 @@ export function UserProfilePage() {
             data-testid="user-profile-error"
             className="rounded-xl border border-red-200 bg-red-50 p-6 text-sm font-medium text-red-800"
           >
-            {error}
+            {profileError}
           </div>
         </div>
       </PageShell>
     );
   }
+
+  const joinedAt = profile
+    ? new Date(profile.joinedAt).toLocaleDateString(undefined, {
+        year: 'numeric',
+        month: 'long',
+      })
+    : null;
 
   return (
     <PageShell>
@@ -186,14 +232,95 @@ export function UserProfilePage() {
             >
               {username ? `@${username}` : 'Member profile'}
             </h1>
+            {profile && (
+              <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2 text-sm text-body">
+                <span className="font-medium text-ink">{profile.fullName}</span>
+                {joinedAt && <span>Joined {joinedAt}</span>}
+                {profile.email && (
+                  <span className="inline-flex items-center gap-1.5">
+                    <Mail className="h-4 w-4 text-muted" aria-hidden="true" />
+                    <a
+                      href={`mailto:${profile.email}`}
+                      className="underline hover:text-ink"
+                      data-testid="user-profile-email"
+                    >
+                      {profile.email}
+                    </a>
+                  </span>
+                )}
+              </div>
+            )}
           </div>
         </section>
 
         <section className="bg-canvas">
           <div className="mx-auto max-w-content space-y-8 px-6 py-10">
+            {profile && (
+              <div className="rounded-xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
+                <h2 className="font-serif text-lg font-semibold text-ink">About</h2>
+                {profile.bio ? (
+                  <p className="mt-3 whitespace-pre-line text-sm leading-relaxed text-body">
+                    {profile.bio}
+                  </p>
+                ) : (
+                  <p className="mt-3 text-sm text-muted">No bio yet.</p>
+                )}
+
+                <div className="mt-6 grid gap-6 sm:grid-cols-2">
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">Skills</h3>
+                    <TagList items={profile.skills} emptyLabel="No skills listed yet." />
+                  </div>
+                  <div>
+                    <h3 className="text-sm font-semibold text-ink">Interests</h3>
+                    <TagList items={profile.interests} emptyLabel="No interests listed yet." />
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {profile && (
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="rounded-xl border border-line bg-white p-5 text-center">
+                  <p className="font-serif text-[28px] leading-none text-ink">
+                    {profile.stats.questionsSubmitted}
+                  </p>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">
+                    Questions
+                  </p>
+                </div>
+                <div className="rounded-xl border border-line bg-white p-5 text-center">
+                  <p className="font-serif text-[28px] leading-none text-ink">
+                    {profile.stats.perspectivesSubmitted}
+                  </p>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">
+                    Perspectives
+                  </p>
+                </div>
+                <div className="rounded-xl border border-line bg-white p-5 text-center">
+                  <p className="font-serif text-[28px] leading-none text-ink">
+                    {profile.stats.totalUpvotesReceived}
+                  </p>
+                  <p className="mt-2 text-xs font-medium uppercase tracking-wide text-muted">
+                    Upvotes received
+                  </p>
+                </div>
+              </div>
+            )}
+
             <div className="rounded-xl border border-line bg-white p-6 shadow-[0_1px_2px_rgba(0,0,0,0.04)]">
               <h2 className="font-serif text-lg font-semibold text-ink">Top expertise</h2>
-              {fingerprint.length === 0 ? (
+              {isFingerprintLoading ? (
+                <p className="mt-4 text-sm text-muted">Loading expertise...</p>
+              ) : isFingerprintPrivate ? (
+                <p className="mt-4 text-sm text-body">
+                  This user has chosen to keep their Expert Fingerprint hidden.
+                </p>
+              ) : fingerprintError ? (
+                <p role="alert" className="mt-4 text-sm text-red-600">
+                  {fingerprintError}
+                </p>
+              ) : fingerprint.length === 0 ? (
                 <p className="mt-4 text-sm text-body">No expertise yet.</p>
               ) : (
                 <ul className="mt-4 space-y-3">
@@ -236,6 +363,17 @@ export function UserProfilePage() {
                     {visibilityError}
                   </p>
                 )}
+                <div className="mt-2 flex flex-wrap gap-x-4 gap-y-2 border-t border-line pt-4 text-sm font-medium">
+                  <Link to="/settings/profile" className="text-ink underline hover:text-black">
+                    Edit profile settings
+                  </Link>
+                  <Link
+                    to={`/users/${encodeURIComponent(id)}`}
+                    className="text-muted underline hover:text-ink"
+                  >
+                    View public profile
+                  </Link>
+                </div>
               </div>
             )}
           </div>
