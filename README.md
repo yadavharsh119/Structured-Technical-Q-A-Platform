@@ -25,6 +25,7 @@ This project is organized as an **npm workspaces monorepo**:
 - Content reporting and a moderator queue (reports, dismiss/hide/escalate)
 - Expert fingerprint: top categories per user, public/private visibility, daily recalculation
 - Profile management: public profiles, editable bio/skills/interests, email privacy, password change
+- Account data export (ZIP download) and account deactivation
 
 ## Not built yet (deferred)
 
@@ -51,8 +52,8 @@ The following moderation scope is intentionally deferred:
 - Expert fingerprint caching
 - Configurable expert fingerprint weighting
 - Profile picture upload
-- Profile data export
-- Account deactivation
+- Email delivery of account data export
+- Account reactivation
 
 ## Prerequisites
 

@@ -61,3 +61,14 @@ export const changePasswordSchema = z.object({
 });
 
 export type ChangePasswordInput = z.infer<typeof changePasswordSchema>;
+
+// ── Account data export and deactivation (FR-PROF-02/03, SEC-14) ────────────
+
+export const deactivateAccountSchema = z.object({
+  password: z.string().min(1, 'Password is required.'),
+  confirm: z.literal(true, {
+    errorMap: () => ({ message: 'Please confirm account deactivation.' }),
+  }),
+});
+
+export type DeactivateAccountInput = z.infer<typeof deactivateAccountSchema>;

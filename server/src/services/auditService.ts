@@ -1,4 +1,5 @@
 import { db } from '../config/database';
+import type { DbHandle } from '../repositories/questionRepository';
 
 export interface AuditEntry {
   actorUserId?: string | null;
@@ -12,8 +13,8 @@ export interface AuditEntry {
 
 export const auditService = {
   // SEC-06: never put passwords, raw tokens or hashes in metadata.
-  async log(entry: AuditEntry): Promise<void> {
-    await db
+  async log(entry: AuditEntry, dbi: DbHandle = db): Promise<void> {
+    await dbi
       .insertInto('audit_logs')
       .values({
         actor_user_id: entry.actorUserId ?? null,
