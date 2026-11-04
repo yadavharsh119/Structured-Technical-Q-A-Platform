@@ -77,16 +77,22 @@ async function withTags(rows: Array<QuestionRow & { author_username?: string }>)
 
 async function assertCategoryExists(categoryId: string): Promise<void> {
   const category = await categoryRepository.findById(categoryId);
-  if (!category || !category.is_active) {
+  if (!category) {
     throw validation('Category not found.');
+  }
+  if (!category.is_active) {
+    throw validation('Category is inactive and cannot be selected.');
   }
 }
 
-// tagIds must be a deduplicated list of existing tag ids
+// tagIds must be a deduplicated list of existing, active tag ids
 async function assertTagsExist(tagIds: string[]): Promise<void> {
   const found = await tagRepository.findByIds(tagIds);
   if (found.length !== tagIds.length) {
     throw validation('One or more tags do not exist.');
+  }
+  if (found.some((tag) => !tag.is_active)) {
+    throw validation('One or more tags are inactive and cannot be selected.');
   }
 }
 
@@ -213,14 +219,20 @@ async function approve(
     } else if (input.createTopic !== undefined) {
       const createInput = input.createTopic;
       const category = await categoryRepository.findById(createInput.categoryId);
-      if (!category || !category.is_active) {
+      if (!category) {
         throw validation('Category not found.');
+      }
+      if (!category.is_active) {
+        throw validation('Category is inactive and cannot be selected.');
       }
       const tagIds = Array.from(new Set(createInput.tagIds));
       if (tagIds.length > 0) {
         const found = await tagRepository.findByIds(tagIds);
         if (found.length !== tagIds.length) {
           throw validation('One or more tags do not exist.');
+        }
+        if (found.some((tag) => !tag.is_active)) {
+          throw validation('One or more tags are inactive and cannot be selected.');
         }
       }
 

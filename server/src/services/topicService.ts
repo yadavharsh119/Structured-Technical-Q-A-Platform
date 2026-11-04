@@ -92,8 +92,11 @@ function toDto(row: TopicRow, tags: string[]): TopicDto {
 
 async function assertCategoryExists(categoryId: string): Promise<void> {
   const category = await categoryRepository.findById(categoryId);
-  if (!category || !category.is_active) {
+  if (!category) {
     throw validation('Category not found.');
+  }
+  if (!category.is_active) {
+    throw validation('Category is inactive and cannot be selected.');
   }
 }
 
@@ -104,6 +107,9 @@ async function assertTagsExist(tagIds: string[]): Promise<void> {
   const found = await tagRepository.findByIds(tagIds);
   if (found.length !== tagIds.length) {
     throw validation('One or more tags do not exist.');
+  }
+  if (found.some((tag) => !tag.is_active)) {
+    throw validation('One or more tags are inactive and cannot be selected.');
   }
 }
 

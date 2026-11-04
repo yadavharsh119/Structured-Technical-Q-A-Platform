@@ -30,6 +30,7 @@ This project is organized as an **npm workspaces monorepo**:
 - Admin user management: search/filter users, role changes, warnings, suspensions, bans and restores
 - Read-only audit log viewer with actor/action/date filtering
 - Topic administration: curated topic creation, editing, archiving, merging and slug redirects
+- Category and tag management: create, edit, deactivate, and merge tags
 
 ## Not built yet (deferred)
 
@@ -58,7 +59,9 @@ The following moderation scope is intentionally deferred:
 - Undo/restore for deleted perspectives
 - Topic unarchive
 - Undo topic merge
-- Category and tag management (next ticket)
+- Tag suggestions
+- Category and tag usage statistics
+- Category and tag delete endpoints
 
 ## Prerequisites
 

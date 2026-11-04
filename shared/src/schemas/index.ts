@@ -204,3 +204,6 @@ export * from './admin';
 
 // Topic administration: create, edit, archive and merge (FR-TOP-01 - FR-TOP-04).
 export * from './topics';
+
+// Category and tag management (FR-TOP-05, FR-TOP-06).
+export * from './taxonomy';

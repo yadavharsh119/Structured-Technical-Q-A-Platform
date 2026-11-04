@@ -12,6 +12,15 @@ import {
   listUsers,
 } from '../controllers/adminController';
 import { merge as mergeTopics } from '../controllers/topicController';
+import {
+  createCategory,
+  createTag,
+  listAdminCategories,
+  listAdminTags,
+  mergeTags,
+  updateCategory,
+  updateTag,
+} from '../controllers/taxonomyController';
 
 const router = Router();
 
@@ -32,5 +41,15 @@ router.delete('/perspectives/:id', requireRole('admin'), removePerspective);
 
 // FR-TOP-03: topic merge is explicitly admin-only (moderators get 403).
 router.post('/topics/merge', requireRole('admin'), mergeTopics);
+
+// FR-TOP-05, FR-TOP-06: moderators and admins manage categories and tags.
+router.get('/categories', requireRole('moderator'), listAdminCategories);
+router.post('/categories', requireRole('moderator'), createCategory);
+router.patch('/categories/:id', requireRole('moderator'), updateCategory);
+
+router.get('/tags', requireRole('moderator'), listAdminTags);
+router.post('/tags', requireRole('moderator'), createTag);
+router.post('/tags/merge', requireRole('moderator'), mergeTags);
+router.patch('/tags/:id', requireRole('moderator'), updateTag);
 
 export default router;
