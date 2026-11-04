@@ -64,7 +64,38 @@ export interface Perspective {
   references: string[];
   upvoteCount: number;
   hasUpvoted: boolean;
+  deletionRequestPending: boolean;
   createdAt: string;
+}
+
+export type DeletionRequestStatus = 'pending' | 'approved' | 'rejected';
+
+export interface DeletionRequestPerspective {
+  id: string;
+  topicId: string;
+  proposedSolution: string;
+  explanation: string;
+  authorUsername: string;
+  deletedAt: string | null;
+}
+
+export interface DeletionRequest {
+  id: string;
+  perspectiveId: string;
+  reason: string;
+  status: DeletionRequestStatus;
+  decisionNote: string | null;
+  createdAt: string;
+  decidedAt: string | null;
+  requester: {
+    id: string;
+    username: string;
+  };
+  decidedBy: {
+    id: string;
+    username: string;
+  } | null;
+  perspective: DeletionRequestPerspective;
 }
 
 export type PerspectiveSort = 'newest' | 'top';

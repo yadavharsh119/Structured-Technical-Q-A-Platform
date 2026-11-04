@@ -22,6 +22,7 @@ import { QuestionReviewQueuePage } from './pages/QuestionReviewQueuePage';
 import { MyQuestionsPage } from './pages/MyQuestionsPage';
 import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { DeletionRequestsPage } from './pages/DeletionRequestsPage';
 import { SearchPage } from './pages/SearchPage';
 import { NotFoundPage } from './pages/NotFoundPage';
 
@@ -140,6 +141,14 @@ export function App() {
             element={
               <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
                 <ModerationQueuePage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/deletion-requests"
+            element={
+              <ProtectedRoute allowedRoles={['admin']} forbiddenRedirectTo="/">
+                <DeletionRequestsPage />
               </ProtectedRoute>
             }
           />

@@ -18,6 +18,7 @@ export function Navbar() {
   const onLanding = pathname === '/';
   const sectionHref = (hash: string) => (onLanding ? hash : `/${hash}`);
   const canReview = user?.role === 'moderator' || user?.role === 'admin';
+  const isAdmin = user?.role === 'admin';
   const [navSearch, setNavSearch] = useState('');
 
   const handleSearch = (e: React.FormEvent) => {
@@ -122,6 +123,15 @@ export function Navbar() {
                   className={`text-sm font-medium ${pathname === '/moderation' ? 'text-ink font-semibold' : 'text-secondary hover:text-black'}`}
                 >
                   Moderation
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  to="/admin/deletion-requests"
+                  data-testid="nav-deletion-requests"
+                  className={`text-sm font-medium ${pathname === '/admin/deletion-requests' ? 'text-ink font-semibold' : 'text-secondary hover:text-black'}`}
+                >
+                  Deletion Requests
                 </Link>
               )}
               <Link
@@ -278,6 +288,16 @@ export function Navbar() {
                   >
                     Settings
                   </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin/deletion-requests"
+                      onClick={() => setOpen(false)}
+                      data-testid="nav-deletion-requests-mobile"
+                      className={pageClass('/admin/deletion-requests', true)}
+                    >
+                      Deletion Requests
+                    </Link>
+                  )}
                   <button
                     type="button"
                     onClick={handleLogout}

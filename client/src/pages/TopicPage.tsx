@@ -7,6 +7,8 @@ import { SourceQuestionCard } from '../components/topic/SourceQuestionCard';
 import { PerspectiveList } from '../components/topic/PerspectiveList';
 import { CompareBar } from '../components/topic/CompareBar';
 import { ReportModal } from '../components/moderation/ReportModal';
+import { RequestDeletionModal } from '../components/topic/RequestDeletionModal';
+import { AdminDeletePerspectiveModal } from '../components/admin/AdminDeletePerspectiveModal';
 import { EmptyState } from '../components/search/EmptyState';
 import { getTopic } from '../api/topics';
 import { listCategories } from '../api/taxonomy';
@@ -46,6 +48,9 @@ export function TopicPage() {
     id: string;
     label: string;
   } | null>(null);
+
+  const [deletionTarget, setDeletionTarget] = useState<Perspective | null>(null);
+  const [adminDeleteTarget, setAdminDeleteTarget] = useState<Perspective | null>(null);
 
   const submitted = (location.state as { perspectiveSubmitted?: boolean } | null)
     ?.perspectiveSubmitted === true;
@@ -178,6 +183,17 @@ export function TopicPage() {
       setCompareMessage(null);
       return [...prev, id];
     });
+  };
+
+  const handleDeletionRequested = (id: string) => {
+    setPerspectives((prev) =>
+      prev.map((p) => (p.id === id ? { ...p, deletionRequestPending: true } : p)),
+    );
+  };
+
+  const handleAdminDeleted = (id: string) => {
+    setPerspectives((prev) => prev.filter((p) => p.id !== id));
+    setSelected((prev) => prev.filter((x) => x !== id));
   };
 
   if (isLoading) {
@@ -409,6 +425,7 @@ export function TopicPage() {
                 <PerspectiveList
                   items={perspectives}
                   isGuest={user === null}
+                  isAdmin={user?.role === 'admin'}
                   username={user?.username ?? null}
                   pendingVoteIds={pendingVoteIds}
                   onToggleVote={handleToggleVote}
@@ -421,6 +438,8 @@ export function TopicPage() {
                       label: perspective.proposedSolution,
                     })
                   }
+                  onRequestDeletion={(perspective) => setDeletionTarget(perspective)}
+                  onAdminDelete={(perspective) => setAdminDeleteTarget(perspective)}
                 />
               )}
             </div>
@@ -444,6 +463,24 @@ export function TopicPage() {
           targetId={reportTarget.id}
           targetLabel={reportTarget.label}
           onClose={() => setReportTarget(null)}
+        />
+      )}
+
+      {deletionTarget && (
+        <RequestDeletionModal
+          perspectiveId={deletionTarget.id}
+          perspectiveLabel={deletionTarget.proposedSolution}
+          onClose={() => setDeletionTarget(null)}
+          onSubmitted={() => handleDeletionRequested(deletionTarget.id)}
+        />
+      )}
+
+      {adminDeleteTarget && (
+        <AdminDeletePerspectiveModal
+          perspectiveId={adminDeleteTarget.id}
+          perspectiveLabel={adminDeleteTarget.proposedSolution}
+          onClose={() => setAdminDeleteTarget(null)}
+          onDeleted={handleAdminDeleted}
         />
       )}
     </PageShell>

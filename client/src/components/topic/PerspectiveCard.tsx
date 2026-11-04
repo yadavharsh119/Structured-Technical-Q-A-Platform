@@ -1,5 +1,5 @@
 import { useState } from 'react';
-import { ChevronDown, Flag } from 'lucide-react';
+import { ChevronDown, Clock, Flag, Trash2 } from 'lucide-react';
 import type { Perspective } from '../../api/types';
 import { UpvoteButton } from './UpvoteButton';
 
@@ -7,12 +7,15 @@ interface Props {
   perspective: Perspective;
   isGuest: boolean;
   isOwn: boolean;
+  isAdmin: boolean;
   isVotePending: boolean;
   onToggleVote: (id: string) => void;
   selected: boolean;
   compareDisabled: boolean;
   onToggleCompare: (id: string) => void;
   onReport: (perspective: Perspective) => void;
+  onRequestDeletion: (perspective: Perspective) => void;
+  onAdminDelete: (perspective: Perspective) => void;
 }
 
 function initials(name: string): string {
@@ -166,17 +169,50 @@ export function PerspectiveCard(p: Props) {
               />
               Select to compare
             </label>
-            {!p.isGuest && !p.isOwn && (
-              <button
-                type="button"
-                onClick={() => p.onReport(t)}
-                data-testid="perspective-report-button"
-                className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-red-700"
-              >
-                <Flag className="h-3.5 w-3.5" aria-hidden="true" />
-                Report
-              </button>
-            )}
+            <div className="flex flex-wrap items-center gap-3">
+              {p.isOwn &&
+                (t.deletionRequestPending ? (
+                  <span
+                    data-testid="perspective-deletion-pending"
+                    className="inline-flex items-center gap-1.5 rounded-md border border-amber-200 bg-amber-50 px-2 py-1 text-xs font-medium text-amber-900"
+                  >
+                    <Clock className="h-3.5 w-3.5" aria-hidden="true" />
+                    Deletion requested, pending review
+                  </span>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => p.onRequestDeletion(t)}
+                    data-testid="perspective-request-deletion-button"
+                    className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-red-700"
+                  >
+                    <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                    Request deletion
+                  </button>
+                ))}
+              {!p.isGuest && !p.isOwn && (
+                <button
+                  type="button"
+                  onClick={() => p.onReport(t)}
+                  data-testid="perspective-report-button"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-muted hover:text-red-700"
+                >
+                  <Flag className="h-3.5 w-3.5" aria-hidden="true" />
+                  Report
+                </button>
+              )}
+              {p.isAdmin && (
+                <button
+                  type="button"
+                  onClick={() => p.onAdminDelete(t)}
+                  data-testid="perspective-admin-delete-button"
+                  className="inline-flex items-center gap-1.5 text-sm font-medium text-red-700 hover:text-red-900"
+                >
+                  <Trash2 className="h-3.5 w-3.5" aria-hidden="true" />
+                  Delete
+                </button>
+              )}
+            </div>
           </div>
         </div>
       </div>
