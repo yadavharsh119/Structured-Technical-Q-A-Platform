@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { useSearchParams } from 'react-router-dom';
+import { useNavigate, useSearchParams } from 'react-router-dom';
 import { comparePerspectives } from '../api/perspectives';
 import { getTopic } from '../api/topics';
 import { listCategories } from '../api/taxonomy';
@@ -16,6 +16,7 @@ export interface UsePerspectiveCompareState {
 const INVALID_SELECTION = 'Select two or three perspectives from the same topic to compare.';
 
 export function usePerspectiveCompare(): UsePerspectiveCompareState {
+  const navigate = useNavigate();
   const [searchParams] = useSearchParams();
   const topicSlug = (searchParams.get('topic') ?? '').trim();
   const rawIds = searchParams.get('ids') ?? '';
@@ -73,7 +74,25 @@ export function usePerspectiveCompare(): UsePerspectiveCompareState {
         return;
       }
 
+      if ('redirectTo' in topicResponse.data) {
+        navigate(
+          `/compare?topic=${encodeURIComponent(topicResponse.data.redirectTo.slug)}&ids=${encodeURIComponent(ids.join(','))}`,
+          { replace: true },
+        );
+        setIsLoading(false);
+        return;
+      }
+
       const loadedTopic = topicResponse.data.topic;
+      if (loadedTopic.slug !== topicSlug) {
+        navigate(
+          `/compare?topic=${encodeURIComponent(loadedTopic.slug)}&ids=${encodeURIComponent(ids.join(','))}`,
+          { replace: true },
+        );
+        setIsLoading(false);
+        return;
+      }
+
       setPerspectives(compareResponse.data.perspectives);
       setTopic(loadedTopic);
       if (categoriesResponse.success) {
@@ -91,7 +110,7 @@ export function usePerspectiveCompare(): UsePerspectiveCompareState {
     return () => {
       cancelled = true;
     };
-  }, [topicSlug, rawIds]);
+  }, [topicSlug, rawIds, navigate]);
 
   return { perspectives, topic, categoryName, error, isLoading };
 }

@@ -125,6 +125,15 @@ export function Navbar() {
                   Moderation
                 </Link>
               )}
+              {canReview && (
+                <Link
+                  to="/admin/topics"
+                  data-testid="nav-admin-topics"
+                  className={pageClass('/admin/topics', false)}
+                >
+                  Manage Topics
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   to="/admin/users"
@@ -306,6 +315,16 @@ export function Navbar() {
                   >
                     Settings
                   </Link>
+                  {canReview && (
+                    <Link
+                      to="/admin/topics"
+                      onClick={() => setOpen(false)}
+                      data-testid="nav-admin-topics-mobile"
+                      className={pageClass('/admin/topics', true)}
+                    >
+                      Manage Topics
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link
                       to="/admin/users"

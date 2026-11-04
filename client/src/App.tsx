@@ -24,6 +24,7 @@ import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminAuditLogsPage } from './pages/AdminAuditLogsPage';
+import { AdminTopicsPage } from './pages/AdminTopicsPage';
 import { DeletionRequestsPage } from './pages/DeletionRequestsPage';
 import { SearchPage } from './pages/SearchPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -127,6 +128,14 @@ export function App() {
             element={
               <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
                 <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/topics"
+            element={
+              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]} forbiddenRedirectTo="/">
+                <AdminTopicsPage />
               </ProtectedRoute>
             }
           />

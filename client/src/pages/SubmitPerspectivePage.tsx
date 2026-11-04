@@ -104,7 +104,22 @@ export function SubmitPerspectivePage() {
         return;
       }
 
-      setTopic(response.data.topic);
+      if ('redirectTo' in response.data) {
+        navigate(`/topics/${response.data.redirectTo.slug}/perspectives/new`, {
+          replace: true,
+        });
+        setTopicLoading(false);
+        return;
+      }
+
+      const loadedTopic = response.data.topic;
+      if (loadedTopic.slug !== slug) {
+        navigate(`/topics/${loadedTopic.slug}/perspectives/new`, { replace: true });
+        setTopicLoading(false);
+        return;
+      }
+
+      setTopic(loadedTopic);
       listPerspectives(slug, 'newest').then((listResponse) => {
         if (cancelled) return;
         if (listResponse.success && user) {
@@ -119,7 +134,7 @@ export function SubmitPerspectivePage() {
     return () => {
       cancelled = true;
     };
-  }, [slug, user]);
+  }, [slug, user, navigate]);
 
   useEffect(() => {
     const saved = loadPerspectiveDraft(slug);

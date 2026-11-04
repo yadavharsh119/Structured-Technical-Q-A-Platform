@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react';
-import { Link, useLocation, useParams, useSearchParams } from 'react-router-dom';
+import { Link, useLocation, useNavigate, useParams, useSearchParams } from 'react-router-dom';
 import { MessageSquare, Flag } from 'lucide-react';
 import { PageShell } from '../components/layout/PageShell';
 import { TopicHeader } from '../components/topic/TopicHeader';
@@ -21,6 +21,7 @@ const icon = <MessageSquare className="mx-auto h-8 w-8 text-deco" aria-hidden="t
 
 export function TopicPage() {
   const { slug = '' } = useParams();
+  const navigate = useNavigate();
   const { user } = useAuth();
   const location = useLocation();
   const [searchParams, setSearchParams] = useSearchParams();
@@ -75,7 +76,19 @@ export function TopicPage() {
         return;
       }
 
+      if ('redirectTo' in topicResponse.data) {
+        navigate(`/topics/${topicResponse.data.redirectTo.slug}`, { replace: true });
+        setIsLoading(false);
+        return;
+      }
+
       const loadedTopic = topicResponse.data.topic;
+      if (loadedTopic.slug !== slug) {
+        navigate(`/topics/${loadedTopic.slug}`, { replace: true });
+        setIsLoading(false);
+        return;
+      }
+
       setTopic(loadedTopic);
       setQuestions(topicResponse.data.questions);
       if (categoriesResponse.success) {
@@ -92,7 +105,7 @@ export function TopicPage() {
     return () => {
       cancelled = true;
     };
-  }, [slug]);
+  }, [slug, navigate]);
 
   useEffect(() => {
     let cancelled = false;
