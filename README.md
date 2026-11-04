@@ -27,6 +27,8 @@ This project is organized as an **npm workspaces monorepo**:
 - Profile management: public profiles, editable bio/skills/interests, email privacy, password change
 - Account data export (ZIP download) and account deactivation
 - Perspective deletion requests with admin approve/reject, plus admin soft/hard removal
+- Admin user management: search/filter users, role changes, warnings, suspensions, bans and restores
+- Read-only audit log viewer with actor/action/date filtering
 
 ## Not built yet (deferred)
 
@@ -34,7 +36,7 @@ This project is organized as an **npm workspaces monorepo**:
 - Search: typo tolerance and autocomplete
 - Search: caching
 - Admin dashboard
-- Audit log viewer
+- Analytics dashboards
 - Topic merge/archive
 - Attachments
 
@@ -47,7 +49,6 @@ The following moderation scope is intentionally deferred:
 - Branded email templates beyond plain text
 - Audit log entries for moderator actions
 - Automated content screening
-- User warnings, suspensions and bans
 - Expert fingerprint profile editing
 - Expert fingerprint caching
 - Configurable expert fingerprint weighting

@@ -142,4 +142,16 @@ export const userRepository = {
       .where('id', '=', id)
       .execute();
   },
+
+  // FR-MOD-03: suspensions expire by clock comparison, so a write path that
+  // notices an elapsed suspension can lazily put the account back to active.
+  async clearExpiredSuspension(id: string, now: Date): Promise<void> {
+    await db
+      .updateTable('users')
+      .set({ status: 'active', suspended_until: null })
+      .where('id', '=', id)
+      .where('status', '=', 'suspended')
+      .where('suspended_until', '<=', now)
+      .execute();
+  },
 };

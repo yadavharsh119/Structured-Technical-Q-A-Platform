@@ -198,3 +198,6 @@ export * from './fingerprint';
 
 // Profile management and privacy settings (FR-PROF-01, FR-PROF-02).
 export * from './profile';
+
+// Admin user management and audit log viewer (FR-MOD-03, FR-ADM-01, FR-ADM-03).
+export * from './admin';

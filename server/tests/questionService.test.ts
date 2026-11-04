@@ -55,6 +55,10 @@ jest.mock('../src/repositories/topicRepository', () => ({
   },
 }));
 
+jest.mock('../src/services/accountStatusService', () => ({
+  assertCanContribute: jest.fn().mockResolvedValue(undefined),
+}));
+
 const mockedCategory = categoryRepository as jest.Mocked<typeof categoryRepository>;
 const mockedTag = tagRepository as jest.Mocked<typeof tagRepository>;
 const mockedQuestion = questionRepository as jest.Mocked<typeof questionRepository>;

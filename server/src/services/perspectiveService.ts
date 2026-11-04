@@ -8,6 +8,7 @@ import {
   type PerspectiveRow,
 } from '../repositories/perspectiveRepository';
 import { topicRepository } from '../repositories/topicRepository';
+import { assertCanContribute } from './accountStatusService';
 
 export interface PerspectiveCodeSnippetDto {
   language: string;
@@ -122,6 +123,7 @@ async function create(
   input: PerspectiveCreateInput,
   authorId: string,
 ): Promise<PerspectiveDto> {
+  await assertCanContribute(authorId);
   const topic = await publishedTopicBySlug(topicSlug);
 
   const existing = await perspectiveRepository.findByTopicAndAuthor(topic.id, authorId);
@@ -191,6 +193,7 @@ async function toggleUpvote(
   perspectiveId: string,
   userId: string,
 ): Promise<VoteStateDto> {
+  await assertCanContribute(userId);
   return db.transaction().execute(async (trx) => {
     // Lock the perspective row so concurrent toggles serialize (double-click safe)
     const perspective = await perspectiveRepository.findByIdForUpdate(perspectiveId, trx);

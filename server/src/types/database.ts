@@ -268,6 +268,14 @@ export interface UserActionsTable {
   created_at: Generated<Date>;
 }
 
+export interface UserWarningsTable {
+  id: Generated<string>;
+  user_id: string;
+  issued_by: string;
+  reason: string;
+  created_at: Generated<Date>;
+}
+
 export interface ExpertFingerprintsTable {
   user_id: string;
   category_id: string;
@@ -310,6 +318,7 @@ export interface Database {
   deletion_requests: DeletionRequestsTable;
   reports: ReportsTable;
   user_actions: UserActionsTable;
+  user_warnings: UserWarningsTable;
   expert_fingerprints: ExpertFingerprintsTable;
   system_settings: SystemSettingsTable;
 }

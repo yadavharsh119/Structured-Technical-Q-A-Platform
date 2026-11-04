@@ -4,6 +4,7 @@ import { AppError } from '../middleware/errorHandler';
 import { perspectiveRepository } from '../repositories/perspectiveRepository';
 import { reportRepository, type ReportRowWithReporter } from '../repositories/reportRepository';
 import { topicRepository } from '../repositories/topicRepository';
+import { assertCanContribute } from './accountStatusService';
 
 export interface ReportedTopicDto {
   type: 'topic';
@@ -110,6 +111,7 @@ async function toDto(row: ReportRowWithReporter): Promise<ReportDto> {
 }
 
 async function create(input: ReportCreateInput, reporterId: string): Promise<ReportDto> {
+  await assertCanContribute(reporterId);
   if (input.targetType === 'topic') {
     const topic = await topicRepository.findById(input.targetId);
     if (!topic) {

@@ -19,7 +19,7 @@ export async function attachSession(req: Request, _res: Response, next: NextFunc
     if (typeof raw === 'string' && raw.length > 0) {
       const found = await sessionRepository.findActiveByTokenHash(hashToken(raw));
       if (found) {
-        const blocked = found.status === 'banned' || found.status === 'deactivated';
+        const blocked = found.status === 'deactivated';
         const stale =
           found.sessions_valid_after !== null &&
           found.session_created_at.getTime() < found.sessions_valid_after.getTime();

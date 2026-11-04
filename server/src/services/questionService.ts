@@ -13,6 +13,7 @@ import {
 } from '../repositories/questionRepository';
 import { tagRepository } from '../repositories/tagRepository';
 import { topicRepository, type TopicRow } from '../repositories/topicRepository';
+import { assertCanContribute } from './accountStatusService';
 import type { TopicDto } from './topicService';
 
 export interface QuestionDto {
@@ -90,6 +91,7 @@ async function assertTagsExist(tagIds: string[]): Promise<void> {
 }
 
 async function create(input: QuestionCreateInput, authorId: string): Promise<QuestionDto> {
+  await assertCanContribute(authorId);
   await assertCategoryExists(input.categoryId);
   const tagIds = Array.from(new Set(input.tagIds));
   await assertTagsExist(tagIds);
