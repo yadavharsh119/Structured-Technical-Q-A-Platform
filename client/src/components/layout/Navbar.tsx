@@ -127,6 +127,24 @@ export function Navbar() {
               )}
               {isAdmin && (
                 <Link
+                  to="/admin/users"
+                  data-testid="nav-admin-users"
+                  className={pageClass('/admin/users', false)}
+                >
+                  Users
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
+                  to="/admin/audit-logs"
+                  data-testid="nav-admin-audit-logs"
+                  className={pageClass('/admin/audit-logs', false)}
+                >
+                  Audit Logs
+                </Link>
+              )}
+              {isAdmin && (
+                <Link
                   to="/admin/deletion-requests"
                   data-testid="nav-deletion-requests"
                   className={`text-sm font-medium ${pathname === '/admin/deletion-requests' ? 'text-ink font-semibold' : 'text-secondary hover:text-black'}`}
@@ -288,6 +306,26 @@ export function Navbar() {
                   >
                     Settings
                   </Link>
+                  {isAdmin && (
+                    <Link
+                      to="/admin/users"
+                      onClick={() => setOpen(false)}
+                      data-testid="nav-admin-users-mobile"
+                      className={pageClass('/admin/users', true)}
+                    >
+                      Users
+                    </Link>
+                  )}
+                  {isAdmin && (
+                    <Link
+                      to="/admin/audit-logs"
+                      onClick={() => setOpen(false)}
+                      data-testid="nav-admin-audit-logs-mobile"
+                      className={pageClass('/admin/audit-logs', true)}
+                    >
+                      Audit Logs
+                    </Link>
+                  )}
                   {isAdmin && (
                     <Link
                       to="/admin/deletion-requests"

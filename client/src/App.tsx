@@ -22,6 +22,8 @@ import { QuestionReviewQueuePage } from './pages/QuestionReviewQueuePage';
 import { MyQuestionsPage } from './pages/MyQuestionsPage';
 import { ModerationQueuePage } from './pages/ModerationQueuePage';
 import { AdminDashboardPage } from './pages/AdminDashboardPage';
+import { AdminUsersPage } from './pages/AdminUsersPage';
+import { AdminAuditLogsPage } from './pages/AdminAuditLogsPage';
 import { DeletionRequestsPage } from './pages/DeletionRequestsPage';
 import { SearchPage } from './pages/SearchPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -125,6 +127,22 @@ export function App() {
             element={
               <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]}>
                 <AdminDashboardPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/users"
+            element={
+              <ProtectedRoute allowedRoles={['admin']} forbiddenRedirectTo="/">
+                <AdminUsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/audit-logs"
+            element={
+              <ProtectedRoute allowedRoles={['admin']} forbiddenRedirectTo="/">
+                <AdminAuditLogsPage />
               </ProtectedRoute>
             }
           />

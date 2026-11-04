@@ -11,6 +11,37 @@ function filenameFromDisposition(header: string | null): string | null {
   return match ? decodeURIComponent(match[1].trim()) : null;
 }
 
+function suspendedUntilFrom(details: unknown): string | null {
+  if (!details || typeof details !== 'object') return null;
+  const value = (details as { suspendedUntil?: unknown }).suspendedUntil;
+  if (typeof value !== 'string') return null;
+  const date = new Date(value);
+  return Number.isNaN(date.getTime())
+    ? null
+    : date.toLocaleDateString('en-US', {
+        month: 'short',
+        day: 'numeric',
+        year: 'numeric',
+      });
+}
+
+function withAccountStatusMessage<T>(payload: ApiResponse<T>): ApiResponse<T> {
+  if (payload.success) return payload;
+
+  let message: string | null = null;
+  if (payload.error.code === 'ACCOUNT_BANNED') {
+    message = 'Your account is banned. You cannot submit content or vote.';
+  } else if (payload.error.code === 'ACCOUNT_SUSPENDED') {
+    const until = suspendedUntilFrom(payload.error.details);
+    message = until
+      ? `Your account is suspended until ${until}. You cannot submit content or vote until then.`
+      : 'Your account is suspended until the suspension ends. You cannot submit content or vote until then.';
+  }
+
+  if (!message) return payload;
+  return { ...payload, error: { ...payload.error, message } };
+}
+
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<ApiResponse<T>> {
   const { headers, ...rest } = init;
   try {
@@ -19,7 +50,7 @@ export async function apiRequest<T>(path: string, init: RequestInit = {}): Promi
       ...rest,
       headers: { 'Content-Type': 'application/json', ...headers },
     });
-    return (await res.json()) as ApiResponse<T>;
+    return withAccountStatusMessage((await res.json()) as ApiResponse<T>);
   } catch (err) {
     return {
       success: false,
