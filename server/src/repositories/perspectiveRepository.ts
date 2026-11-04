@@ -1,6 +1,7 @@
 import { Selectable } from 'kysely';
 import { db } from '../config/database';
 import { PerspectivesTable } from '../types/database';
+import { attachmentRepository } from './attachmentRepository';
 import type { DbHandle } from './questionRepository';
 
 export type PerspectiveRow = Selectable<PerspectivesTable>;
@@ -19,17 +20,30 @@ export interface NewPerspective {
 }
 
 export const perspectiveRepository = {
-  create(data: NewPerspective, dbi: DbHandle = db): Promise<PerspectiveRow> {
-    return dbi
-      .insertInto('perspectives')
-      .values({
-        ...data,
-        // node-postgres serializes JS arrays as Postgres array literals, which
-        // is not valid JSON input for a jsonb column; pass a JSON string instead
-        code_snippets: JSON.stringify(data.code_snippets) as unknown as NewPerspective['code_snippets'],
-      })
-      .returningAll()
-      .executeTakeFirstOrThrow();
+  create(
+    data: NewPerspective,
+    attachmentIds: string[] = [],
+    dbi: DbHandle = db,
+  ): Promise<PerspectiveRow> {
+    return dbi.transaction().execute(async (trx) => {
+      const perspective = await trx
+        .insertInto('perspectives')
+        .values({
+          ...data,
+          // node-postgres serializes JS arrays as Postgres array literals, which
+          // is not valid JSON input for a jsonb column; pass a JSON string instead
+          code_snippets: JSON.stringify(data.code_snippets) as unknown as NewPerspective['code_snippets'],
+        })
+        .returningAll()
+        .executeTakeFirstOrThrow();
+      await attachmentRepository.linkToPerspective(
+        perspective.id,
+        attachmentIds,
+        data.author_id,
+        trx,
+      );
+      return perspective;
+    });
   },
 
   findByTopicAndAuthor(
@@ -246,13 +260,8 @@ export const perspectiveRepository = {
       .execute();
   },
 
-  async deleteAttachments(perspectiveId: string, dbi: DbHandle = db): Promise<string[]> {
-    const rows = await dbi
-      .deleteFrom('attachments')
-      .where('perspective_id', '=', perspectiveId)
-      .returning('stored_path')
-      .execute();
-    return rows.map((row) => row.stored_path);
+  deleteAttachments(perspectiveId: string, dbi: DbHandle = db): Promise<string[]> {
+    return attachmentRepository.deleteByPerspectiveId(perspectiveId, dbi);
   },
 
   async deleteDeletionRequests(perspectiveId: string, dbi: DbHandle = db): Promise<void> {

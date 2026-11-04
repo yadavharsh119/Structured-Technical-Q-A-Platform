@@ -31,6 +31,7 @@ This project is organized as an **npm workspaces monorepo**:
 - Read-only audit log viewer with actor/action/date filtering
 - Topic administration: curated topic creation, editing, archiving, merging and slug redirects
 - Category and tag management: create, edit, deactivate, and merge tags
+- File attachments on questions and perspectives: upload, guarded download, and hard-delete cleanup
 
 ## Not built yet (deferred)
 
@@ -39,7 +40,6 @@ This project is organized as an **npm workspaces monorepo**:
 - Search: caching
 - Admin dashboard
 - Analytics dashboards
-- Attachments
 
 ## Deferred
 
@@ -62,6 +62,12 @@ The following moderation scope is intentionally deferred:
 - Tag suggestions
 - Category and tag usage statistics
 - Category and tag delete endpoints
+- Attachment virus scanning
+- Attachment image resizing
+- Profile picture upload as an attachment
+- Editing attachments on a pending question
+- Orphaned attachment cleanup job
+- 50 GB attachment quota check
 
 ## Prerequisites
 

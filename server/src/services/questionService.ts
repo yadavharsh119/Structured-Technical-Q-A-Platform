@@ -1,4 +1,5 @@
 import type {
+  AttachmentDto,
   QuestionApproveInput,
   QuestionCreateInput,
   QuestionRejectInput,
@@ -14,6 +15,7 @@ import {
 import { tagRepository } from '../repositories/tagRepository';
 import { topicRepository, type TopicRow } from '../repositories/topicRepository';
 import { assertCanContribute } from './accountStatusService';
+import { attachmentService } from './attachmentService';
 import type { TopicDto } from './topicService';
 
 export interface QuestionDto {
@@ -27,6 +29,7 @@ export interface QuestionDto {
   topicId: string | null;
   createdAt: Date;
   tags: string[];
+  attachments: AttachmentDto[];
   authorUsername?: string;
 }
 
@@ -54,6 +57,7 @@ function validation(message: string): AppError {
 function toDto(
   row: QuestionRow & { author_username?: string },
   tagNames: string[],
+  attachments: AttachmentDto[],
 ): QuestionDto {
   return {
     id: row.id,
@@ -66,13 +70,20 @@ function toDto(
     topicId: row.topic_id,
     createdAt: row.created_at,
     tags: tagNames,
+    attachments,
     ...(row.author_username !== undefined ? { authorUsername: row.author_username } : {}),
   };
 }
 
-async function withTags(rows: Array<QuestionRow & { author_username?: string }>): Promise<QuestionDto[]> {
-  const tagNames = await tagRepository.namesByQuestionIds(rows.map((row) => row.id));
-  return rows.map((row) => toDto(row, tagNames.get(row.id) ?? []));
+async function withRelations(
+  rows: Array<QuestionRow & { author_username?: string }>,
+): Promise<QuestionDto[]> {
+  const ids = rows.map((row) => row.id);
+  const tagNames = await tagRepository.namesByQuestionIds(ids);
+  const attachments = await attachmentService.listForQuestions(ids);
+  return rows.map((row) =>
+    toDto(row, tagNames.get(row.id) ?? [], attachments.get(row.id) ?? []),
+  );
 }
 
 async function assertCategoryExists(categoryId: string): Promise<void> {
@@ -111,19 +122,25 @@ async function create(input: QuestionCreateInput, authorId: string): Promise<Que
       tech_stack: input.techStack ?? null,
     },
     tagIds,
+    input.attachmentIds,
   );
   const tagRows = await tagRepository.findByIds(tagIds);
-  return toDto(row, tagRows.map((tag) => tag.name));
+  const attachments = await attachmentService.listForQuestions([row.id]);
+  return toDto(
+    row,
+    tagRows.map((tag) => tag.name),
+    attachments.get(row.id) ?? [],
+  );
 }
 
 async function listMine(userId: string): Promise<QuestionDto[]> {
   const rows = await questionRepository.listByAuthor(userId);
-  return withTags(rows);
+  return withRelations(rows);
 }
 
 async function listPending(): Promise<QuestionDto[]> {
   const rows = await questionRepository.listPending();
-  return withTags(rows);
+  return withRelations(rows);
 }
 
 async function update(
@@ -161,7 +178,8 @@ async function update(
   }
 
   const tagNames = await tagRepository.namesByQuestionIds([questionId]);
-  return toDto(updated, tagNames.get(questionId) ?? []);
+  const attachments = await attachmentService.listForQuestions([questionId]);
+  return toDto(updated, tagNames.get(questionId) ?? [], attachments.get(questionId) ?? []);
 }
 
 async function remove(questionId: string, actorId: string): Promise<void> {
@@ -191,7 +209,11 @@ async function reject(
     throw notPending();
   }
   const row = await questionRepository.markRejected(questionId, input.reason, reviewerId);
-  return toDto(row, (await tagRepository.namesByQuestionIds([questionId])).get(questionId) ?? []);
+  return toDto(
+    row,
+    (await tagRepository.namesByQuestionIds([questionId])).get(questionId) ?? [],
+    (await attachmentService.listForQuestions([questionId])).get(questionId) ?? [],
+  );
 }
 
 async function approve(
@@ -270,7 +292,11 @@ async function approve(
     const updated = await questionRepository.markApproved(questionId, topic.id, reviewerId, trx);
     const tagNames = await tagRepository.namesByQuestionIds([questionId], trx);
     return {
-      question: toDto(updated, tagNames.get(questionId) ?? []),
+      question: toDto(
+        updated,
+        tagNames.get(questionId) ?? [],
+        (await attachmentService.listForQuestions([questionId], trx)).get(questionId) ?? [],
+      ),
       topic: {
         id: topic.id,
         title: topic.title,

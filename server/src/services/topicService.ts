@@ -6,6 +6,7 @@ import { perspectiveRepository } from '../repositories/perspectiveRepository';
 import { questionRepository } from '../repositories/questionRepository';
 import { tagRepository } from '../repositories/tagRepository';
 import { topicRepository, type TopicRow } from '../repositories/topicRepository';
+import { attachmentService } from './attachmentService';
 import { auditService } from './auditService';
 import type { QuestionDto } from './questionService';
 
@@ -180,9 +181,9 @@ async function getBySlug(slug: string, includeHidden = false): Promise<TopicLook
     tagRepository.namesByTopicIds([row.id]),
     questionRepository.listApprovedByTopicId(row.id),
   ]);
-  const questionTagNames = await tagRepository.namesByQuestionIds(
-    questionRows.map((question) => question.id),
-  );
+  const questionIds = questionRows.map((question) => question.id);
+  const questionTagNames = await tagRepository.namesByQuestionIds(questionIds);
+  const questionAttachments = await attachmentService.listForQuestions(questionIds);
 
   const topic = toDto(row, topicTagNames.get(row.id) ?? []);
 
@@ -197,6 +198,7 @@ async function getBySlug(slug: string, includeHidden = false): Promise<TopicLook
     topicId: question.topic_id,
     createdAt: question.created_at,
     tags: questionTagNames.get(question.id) ?? [],
+    attachments: questionAttachments.get(question.id) ?? [],
     authorUsername: question.author_username,
   }));
 

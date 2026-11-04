@@ -1,6 +1,7 @@
 import { Kysely, Selectable } from 'kysely';
 import { db } from '../config/database';
 import { Database, QuestionsTable } from '../types/database';
+import { attachmentRepository } from './attachmentRepository';
 
 export type QuestionRow = Selectable<QuestionsTable>;
 
@@ -28,7 +29,11 @@ async function insertQuestionTags(dbi: DbHandle, questionId: string, tagIds: str
 }
 
 export const questionRepository = {
-  async create(data: NewQuestion, tagIds: string[]): Promise<QuestionRow> {
+  async create(
+    data: NewQuestion,
+    tagIds: string[],
+    attachmentIds: string[] = [],
+  ): Promise<QuestionRow> {
     return db.transaction().execute(async (trx) => {
       const question = await trx
         .insertInto('questions')
@@ -36,6 +41,12 @@ export const questionRepository = {
         .returningAll()
         .executeTakeFirstOrThrow();
       await insertQuestionTags(trx, question.id, tagIds);
+      await attachmentRepository.linkToQuestion(
+        question.id,
+        attachmentIds,
+        data.author_id,
+        trx,
+      );
       return question;
     });
   },

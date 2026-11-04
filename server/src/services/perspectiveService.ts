@@ -1,4 +1,4 @@
-import type { PerspectiveCreateInput } from '@structured-qa/shared';
+import type { AttachmentDto, PerspectiveCreateInput } from '@structured-qa/shared';
 import { db } from '../config/database';
 import { AppError } from '../middleware/errorHandler';
 import { userRepository } from '../repositories/userRepository';
@@ -9,6 +9,7 @@ import {
 } from '../repositories/perspectiveRepository';
 import { topicRepository } from '../repositories/topicRepository';
 import { assertCanContribute } from './accountStatusService';
+import { attachmentService } from './attachmentService';
 
 export interface PerspectiveCodeSnippetDto {
   language: string;
@@ -26,6 +27,7 @@ export interface PerspectiveDto {
   limitations: string[];
   codeSnippets: PerspectiveCodeSnippetDto[];
   references: string[];
+  attachments: AttachmentDto[];
   upvoteCount: number;
   hasUpvoted: boolean;
   deletionRequestPending: boolean;
@@ -112,6 +114,7 @@ async function toDtos(
     ...new Set(rows.map((row) => row.author_id)),
   ]);
   const pendingDeletion = await perspectiveRepository.pendingDeletionRequestIds(ids);
+  const attachments = await attachmentService.listForPerspectives(ids);
   return rows.map((row) => ({
     id: row.id,
     topicId: row.topic_id,
@@ -123,6 +126,7 @@ async function toDtos(
     limitations: row.limitations,
     codeSnippets: toSnippetDtos(row),
     references: row.reference_urls,
+    attachments: attachments.get(row.id) ?? [],
     upvoteCount: counts.get(row.id) ?? 0,
     hasUpvoted: voted.has(row.id),
     deletionRequestPending: pendingDeletion.has(row.id),
@@ -148,16 +152,19 @@ async function create(
 
   let row: PerspectiveRow;
   try {
-    row = await perspectiveRepository.create({
-      topic_id: topic.id,
-      author_id: authorId,
-      proposed_solution: input.proposedSolution,
-      explanation: input.explanation,
-      advantages: input.advantages,
-      limitations: input.limitations,
-      code_snippets: input.codeSnippets,
-      reference_urls: input.references,
-    });
+    row = await perspectiveRepository.create(
+      {
+        topic_id: topic.id,
+        author_id: authorId,
+        proposed_solution: input.proposedSolution,
+        explanation: input.explanation,
+        advantages: input.advantages,
+        limitations: input.limitations,
+        code_snippets: input.codeSnippets,
+        reference_urls: input.references,
+      },
+      input.attachmentIds,
+    );
   } catch (err) {
     // Race: the same user submitted twice concurrently on the same topic
     if (isUniqueViolation(err)) {
@@ -168,6 +175,7 @@ async function create(
 
   const author = await userRepository.findById(authorId);
   const authorLabels = await fingerprintRepository.topCategoryLabelsByUserIds([authorId]);
+  const attachments = await attachmentService.listForPerspectives([row.id]);
   return {
     id: row.id,
     topicId: row.topic_id,
@@ -179,6 +187,7 @@ async function create(
     limitations: row.limitations,
     codeSnippets: toSnippetDtos(row),
     references: row.reference_urls,
+    attachments: attachments.get(row.id) ?? [],
     upvoteCount: 0,
     hasUpvoted: false,
     deletionRequestPending: false,

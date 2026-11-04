@@ -41,6 +41,7 @@ Thumbs.db
 
 # Uploads directory
 uploads/
+server/uploads/
 
 # Temporary files
 scratch/

@@ -1,5 +1,3 @@
-import { promises as fs } from 'fs';
-import path from 'path';
 import type {
   AdminPerspectiveDeleteInput,
   DeletionRequestCreateInput,
@@ -14,6 +12,7 @@ import {
 } from '../repositories/deletionRequestRepository';
 import { perspectiveRepository } from '../repositories/perspectiveRepository';
 import { auditService } from './auditService';
+import { storageService } from './storageService';
 
 export interface DeletionRequestDto {
   id: string;
@@ -227,7 +226,7 @@ async function adminDelete(
   ip: string | null,
 ): Promise<{ id: string; hard: boolean }> {
   const deletedAt = new Date();
-  let attachmentPaths: string[] = [];
+  let attachmentNames: string[] = [];
 
   await db.transaction().execute(async (trx) => {
     const perspective = await perspectiveRepository.findByIdForUpdate(perspectiveId, trx);
@@ -236,7 +235,7 @@ async function adminDelete(
     }
 
     if (hard) {
-      attachmentPaths = await perspectiveRepository.deleteAttachments(perspectiveId, trx);
+      attachmentNames = await perspectiveRepository.deleteAttachments(perspectiveId, trx);
       await perspectiveRepository.deleteVotes(perspectiveId, trx);
       await perspectiveRepository.deleteDeletionRequests(perspectiveId, trx);
       // Legacy table from 004 has no ON DELETE CASCADE.
@@ -266,9 +265,9 @@ async function adminDelete(
   if (hard) {
     // Best-effort file cleanup after the database commit.
     await Promise.all(
-      attachmentPaths.map(async (storedPath) => {
+      attachmentNames.map(async (storedName) => {
         try {
-          await fs.unlink(path.resolve(storedPath));
+          await storageService.remove(storedName);
         } catch {
           // The attachment file may already be missing.
         }

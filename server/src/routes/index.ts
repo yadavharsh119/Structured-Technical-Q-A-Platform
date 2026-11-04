@@ -9,6 +9,7 @@ import searchRoutes from './searchRoutes';
 import reportRoutes from './reportRoutes';
 import userRoutes from './userRoutes';
 import adminRoutes from './adminRoutes';
+import attachmentRoutes from './attachmentRoutes';
 
 const router = Router();
 
@@ -33,6 +34,9 @@ router.use(perspectiveRoutes);
 
 // Mount search route at /api/search (FR-SRCH-01, FR-SRCH-02)
 router.use('/search', searchRoutes);
+
+// Mount attachment upload/download at /api/attachments (FR-QST-01, FR-PSP-01, SEC-09)
+router.use('/attachments', attachmentRoutes);
 
 // Mount reports and the moderator queue at /api/reports (FR-MOD-01, FR-MOD-02)
 router.use('/reports', reportRoutes);

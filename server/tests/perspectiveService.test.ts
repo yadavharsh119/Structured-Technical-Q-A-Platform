@@ -49,6 +49,13 @@ jest.mock('../src/repositories/fingerprintRepository', () => ({
   fingerprintRepository: { topCategoryLabelsByUserIds: jest.fn() },
 }));
 
+jest.mock('../src/services/attachmentService', () => ({
+  attachmentService: {
+    listForQuestions: jest.fn().mockResolvedValue(new Map()),
+    listForPerspectives: jest.fn().mockResolvedValue(new Map()),
+  },
+}));
+
 const mockedPerspective = perspectiveRepository as jest.Mocked<typeof perspectiveRepository>;
 const mockedTopic = topicRepository as jest.Mocked<typeof topicRepository>;
 const mockedUser = userRepository as jest.Mocked<typeof userRepository>;
@@ -107,6 +114,7 @@ function createInput() {
     limitations: ['Adds worker overhead'],
     codeSnippets: [{ language: 'javascript', code: 'console.log(1)' }],
     references: ['https://example.com/benchmark'],
+    attachmentIds: [],
   };
 }
 
@@ -140,6 +148,7 @@ describe('perspectiveService.create', () => {
     expect(perspective.references).toEqual(['https://example.com/benchmark']);
     expect(mockedPerspective.create).toHaveBeenCalledWith(
       expect.objectContaining({ topic_id: TOPIC_ID, author_id: AUTHOR }),
+      [],
     );
   });
 

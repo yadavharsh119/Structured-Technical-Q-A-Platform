@@ -1,5 +1,10 @@
 import { z } from 'zod';
-import { QUESTION_DESCRIPTION_MAX, QUESTION_TAGS_MAX, QUESTION_TITLE_MAX } from './index';
+import {
+  QUESTION_ATTACHMENTS_MAX,
+  QUESTION_DESCRIPTION_MAX,
+  QUESTION_TAGS_MAX,
+  QUESTION_TITLE_MAX,
+} from './index';
 
 // ── Questions and review queue (FR-QST-01 – FR-QST-03, FR-TOP-01) ───────────
 
@@ -28,6 +33,10 @@ export const questionCreateSchema = z.object({
   tagIds: z
     .array(uuidSchema)
     .max(QUESTION_TAGS_MAX, `Pick up to ${QUESTION_TAGS_MAX} tags.`)
+    .default([]),
+  attachmentIds: z
+    .array(uuidSchema)
+    .max(QUESTION_ATTACHMENTS_MAX, `Attach up to ${QUESTION_ATTACHMENTS_MAX} files.`)
     .default([]),
 });
 

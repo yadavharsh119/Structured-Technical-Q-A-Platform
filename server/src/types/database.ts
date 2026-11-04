@@ -203,7 +203,7 @@ export interface AttachmentsTable {
   question_id: string | null;
   perspective_id: string | null;
   original_name: string;
-  stored_path: string;
+  stored_name: string;
   mime_type: string;
   size_bytes: number;
   created_at: Generated<Date>;

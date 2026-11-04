@@ -60,6 +60,13 @@ jest.mock('../src/services/accountStatusService', () => ({
   assertCanContribute: jest.fn().mockResolvedValue(undefined),
 }));
 
+jest.mock('../src/services/attachmentService', () => ({
+  attachmentService: {
+    listForQuestions: jest.fn().mockResolvedValue(new Map()),
+    listForPerspectives: jest.fn().mockResolvedValue(new Map()),
+  },
+}));
+
 const mockedCategory = categoryRepository as jest.Mocked<typeof categoryRepository>;
 const mockedTag = tagRepository as jest.Mocked<typeof tagRepository>;
 const mockedQuestion = questionRepository as jest.Mocked<typeof questionRepository>;
@@ -143,6 +150,7 @@ describe('questionService.create', () => {
         description: 'Deadlock description',
         categoryId: CATEGORY_ID,
         tagIds: [TAG_A, TAG_A, TAG_B],
+        attachmentIds: [],
       },
       AUTHOR,
     );
@@ -152,6 +160,7 @@ describe('questionService.create', () => {
     expect(mockedQuestion.create).toHaveBeenCalledWith(
       expect.objectContaining({ author_id: AUTHOR, category_id: CATEGORY_ID }),
       [TAG_A, TAG_B],
+      [],
     );
   });
 
@@ -160,7 +169,13 @@ describe('questionService.create', () => {
 
     await expect(
       questionService.create(
-        { title: 'T', description: 'D', categoryId: CATEGORY_ID, tagIds: [] },
+        {
+          title: 'T',
+          description: 'D',
+          categoryId: CATEGORY_ID,
+          tagIds: [],
+          attachmentIds: [],
+        },
         AUTHOR,
       ),
     ).rejects.toMatchObject({ statusCode: 400, code: 'VALIDATION_ERROR' });
@@ -172,7 +187,13 @@ describe('questionService.create', () => {
 
     await expect(
       questionService.create(
-        { title: 'T', description: 'D', categoryId: CATEGORY_ID, tagIds: [TAG_A] },
+        {
+          title: 'T',
+          description: 'D',
+          categoryId: CATEGORY_ID,
+          tagIds: [TAG_A],
+          attachmentIds: [],
+        },
         AUTHOR,
       ),
     ).rejects.toMatchObject({ statusCode: 400, code: 'VALIDATION_ERROR' });

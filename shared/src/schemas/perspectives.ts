@@ -7,7 +7,9 @@ import {
   PERSPECTIVE_REFERENCES_MAX,
   PERSPECTIVE_SNIPPETS_MAX,
   PERSPECTIVE_SOLUTION_MAX,
+  QUESTION_ATTACHMENTS_MAX,
   perspectiveCodeSnippetSchema,
+  uuidSchema,
 } from './index';
 
 // FR-PSP-01: one immutable perspective per user per topic.
@@ -55,6 +57,10 @@ export const perspectiveCreateSchema = z.object({
         .max(500, 'Each reference URL must be 500 characters or fewer.'),
     )
     .max(PERSPECTIVE_REFERENCES_MAX, `Add up to ${PERSPECTIVE_REFERENCES_MAX} references.`)
+    .default([]),
+  attachmentIds: z
+    .array(uuidSchema)
+    .max(QUESTION_ATTACHMENTS_MAX, `Attach up to ${QUESTION_ATTACHMENTS_MAX} files.`)
     .default([]),
 });
 
