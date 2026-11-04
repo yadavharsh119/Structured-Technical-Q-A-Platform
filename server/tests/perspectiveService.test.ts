@@ -27,6 +27,7 @@ jest.mock('../src/repositories/perspectiveRepository', () => ({
     removeVote: jest.fn(),
     countVotesByPerspectiveIds: jest.fn(),
     votedPerspectiveIds: jest.fn(),
+    pendingDeletionRequestIds: jest.fn(),
   },
 }));
 
@@ -117,6 +118,7 @@ beforeEach(() => {
   mockedPerspective.findByIdsVisible.mockResolvedValue([]);
   mockedPerspective.countVotesByPerspectiveIds.mockResolvedValue(new Map());
   mockedPerspective.votedPerspectiveIds.mockResolvedValue(new Set());
+  mockedPerspective.pendingDeletionRequestIds.mockResolvedValue(new Set());
   mockedUser.findById.mockResolvedValue({
     id: AUTHOR,
     username: 'alice',

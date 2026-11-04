@@ -45,6 +45,7 @@ export const fingerprintRepository = {
       .where('perspectives.author_id', '=', userId)
       .where('perspectives.status', '=', 'visible')
       .where('perspectives.hidden', '=', false)
+      .where('perspectives.deleted_at', 'is', null)
       .where('topics.status', '=', 'published')
       .where('topics.hidden', '=', false)
       .groupBy([
@@ -66,6 +67,7 @@ export const fingerprintRepository = {
       .select('perspectives.author_id as user_id')
       .where('perspectives.status', '=', 'visible')
       .where('perspectives.hidden', '=', false)
+      .where('perspectives.deleted_at', 'is', null)
       .where('topics.status', '=', 'published')
       .where('topics.hidden', '=', false)
       .distinct()

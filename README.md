@@ -26,6 +26,7 @@ This project is organized as an **npm workspaces monorepo**:
 - Expert fingerprint: top categories per user, public/private visibility, daily recalculation
 - Profile management: public profiles, editable bio/skills/interests, email privacy, password change
 - Account data export (ZIP download) and account deactivation
+- Perspective deletion requests with admin approve/reject, plus admin soft/hard removal
 
 ## Not built yet (deferred)
 
@@ -34,7 +35,6 @@ This project is organized as an **npm workspaces monorepo**:
 - Search: caching
 - Admin dashboard
 - Audit log viewer
-- Perspective deletion requests
 - Topic merge/archive
 - Attachments
 
@@ -54,6 +54,8 @@ The following moderation scope is intentionally deferred:
 - Profile picture upload
 - Email delivery of account data export
 - Account reactivation
+- Deletion-request notification emails
+- Undo/restore for deleted perspectives
 
 ## Prerequisites
 

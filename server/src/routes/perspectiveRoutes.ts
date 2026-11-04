@@ -1,6 +1,7 @@
 import { Router } from 'express';
-import { requireVerified } from '../middleware/auth';
+import { requireAuth, requireVerified } from '../middleware/auth';
 import { compare, create, list, toggleUpvote } from '../controllers/perspectiveController';
+import { create as createDeletionRequest } from '../controllers/deletionRequestController';
 
 const router = Router();
 
@@ -11,5 +12,8 @@ router.get('/topics/:slug/compare', compare);
 
 // Votes
 router.post('/perspectives/:id/upvote', requireVerified, toggleUpvote);
+
+// FR-PSP-03: the author asks an administrator to delete their perspective.
+router.post('/perspectives/:id/deletion-requests', requireAuth, createDeletionRequest);
 
 export default router;

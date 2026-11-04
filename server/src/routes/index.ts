@@ -8,6 +8,7 @@ import { categoryRoutes, tagRoutes } from './taxonomyRoutes';
 import searchRoutes from './searchRoutes';
 import reportRoutes from './reportRoutes';
 import userRoutes from './userRoutes';
+import adminRoutes from './adminRoutes';
 
 const router = Router();
 
@@ -38,5 +39,8 @@ router.use('/reports', reportRoutes);
 
 // Mount expert fingerprints at /api/users (FR-EXP-01, FR-EXP-02)
 router.use('/users', userRoutes);
+
+// Mount admin deletion-request and perspective-removal routes (FR-PSP-03)
+router.use('/admin', adminRoutes);
 
 export default router;

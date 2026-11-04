@@ -85,8 +85,13 @@ export const searchRepository = {
     const offset = (page - 1) * pageSize;
 
     const visibleTopic = includeHidden ? sql`true` : sql`t.hidden = false`;
-    const visiblePerspective = includeHidden ? sql`true` : sql`p.hidden = false`;
-    const visiblePerspectiveP2 = includeHidden ? sql`true` : sql`p2.hidden = false`;
+    // Soft-deleted perspectives are never searchable, even for moderators.
+    const visiblePerspective = includeHidden
+      ? sql`p.deleted_at IS NULL`
+      : sql`p.hidden = false AND p.deleted_at IS NULL`;
+    const visiblePerspectiveP2 = includeHidden
+      ? sql`p2.deleted_at IS NULL`
+      : sql`p2.hidden = false AND p2.deleted_at IS NULL`;
 
     // ── Category sub-filter ───────────────────────────────────────────────────
     // Accept both UUID and slug so the caller does not need to pre-resolve it.

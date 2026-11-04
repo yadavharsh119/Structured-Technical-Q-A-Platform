@@ -67,6 +67,7 @@ export const perspectiveRepository = {
       .selectFrom('perspectives')
       .selectAll()
       .where('id', '=', id)
+      .where('deleted_at', 'is', null)
       .forUpdate()
       .executeTakeFirst();
   },
@@ -82,7 +83,8 @@ export const perspectiveRepository = {
       .selectAll('perspectives')
       .select((eb) => eb.ref('users.username').as('author_username'))
       .where('perspectives.topic_id', '=', topicId)
-      .where('perspectives.status', '=', 'visible');
+      .where('perspectives.status', '=', 'visible')
+      .where('perspectives.deleted_at', 'is', null);
     if (!includeHidden) {
       query = query.where('perspectives.hidden', '=', false);
     }
@@ -100,7 +102,8 @@ export const perspectiveRepository = {
       .selectAll('perspectives')
       .select((eb) => eb.ref('users.username').as('author_username'))
       .where('perspectives.id', 'in', ids)
-      .where('perspectives.status', '=', 'visible');
+      .where('perspectives.status', '=', 'visible')
+      .where('perspectives.deleted_at', 'is', null);
     if (!includeHidden) {
       query = query.where('perspectives.hidden', '=', false);
     }
@@ -178,5 +181,57 @@ export const perspectiveRepository = {
       voted.add(row.perspective_id);
     }
     return voted;
+  },
+
+  async pendingDeletionRequestIds(ids: string[], dbi: DbHandle = db): Promise<Set<string>> {
+    const pending = new Set<string>();
+    if (ids.length === 0) {
+      return pending;
+    }
+    const rows = await dbi
+      .selectFrom('deletion_requests')
+      .select('perspective_id')
+      .where('perspective_id', 'in', ids)
+      .where('status', '=', 'pending')
+      .execute();
+    for (const row of rows) {
+      pending.add(row.perspective_id);
+    }
+    return pending;
+  },
+
+  async softDelete(id: string, deletedAt: Date, dbi: DbHandle = db): Promise<void> {
+    await dbi
+      .updateTable('perspectives')
+      .set({ deleted_at: deletedAt, status: 'deleted' })
+      .where('id', '=', id)
+      .execute();
+  },
+
+  async deleteVotes(perspectiveId: string, dbi: DbHandle = db): Promise<void> {
+    await dbi
+      .deleteFrom('perspective_votes')
+      .where('perspective_id', '=', perspectiveId)
+      .execute();
+  },
+
+  async deleteAttachments(perspectiveId: string, dbi: DbHandle = db): Promise<string[]> {
+    const rows = await dbi
+      .deleteFrom('attachments')
+      .where('perspective_id', '=', perspectiveId)
+      .returning('stored_path')
+      .execute();
+    return rows.map((row) => row.stored_path);
+  },
+
+  async deleteDeletionRequests(perspectiveId: string, dbi: DbHandle = db): Promise<void> {
+    await dbi
+      .deleteFrom('deletion_requests')
+      .where('perspective_id', '=', perspectiveId)
+      .execute();
+  },
+
+  async deleteById(id: string, dbi: DbHandle = db): Promise<void> {
+    await dbi.deleteFrom('perspectives').where('id', '=', id).execute();
   },
 };

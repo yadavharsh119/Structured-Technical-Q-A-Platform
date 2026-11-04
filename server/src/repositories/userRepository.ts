@@ -65,6 +65,7 @@ export const userRepository = {
         .where('author_id', '=', userId)
         .where('status', '=', 'visible')
         .where('hidden', '=', false)
+        .where('deleted_at', 'is', null)
         .executeTakeFirstOrThrow(),
       db
         .selectFrom('perspectives')
@@ -73,6 +74,7 @@ export const userRepository = {
         .where('perspectives.author_id', '=', userId)
         .where('perspectives.status', '=', 'visible')
         .where('perspectives.hidden', '=', false)
+        .where('perspectives.deleted_at', 'is', null)
         .executeTakeFirstOrThrow(),
     ]);
 

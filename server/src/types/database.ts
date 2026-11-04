@@ -233,6 +233,18 @@ export interface PerspectiveDeletionRequestsTable {
   created_at: Generated<Date>;
 }
 
+export interface DeletionRequestsTable {
+  id: Generated<string>;
+  perspective_id: string;
+  requester_id: string;
+  reason: string;
+  status: Generated<RequestStatus>;
+  decided_by: string | null;
+  decision_note: string | null;
+  created_at: Generated<Date>;
+  decided_at: Date | null;
+}
+
 export interface ReportsTable {
   id: Generated<string>;
   reporter_id: string;
@@ -295,6 +307,7 @@ export interface Database {
   attachments: AttachmentsTable;
   perspective_votes: PerspectiveVotesTable;
   perspective_deletion_requests: PerspectiveDeletionRequestsTable;
+  deletion_requests: DeletionRequestsTable;
   reports: ReportsTable;
   user_actions: UserActionsTable;
   expert_fingerprints: ExpertFingerprintsTable;

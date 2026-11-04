@@ -77,3 +77,52 @@ export const perspectiveCompareQuerySchema = z.object({
 });
 
 export type PerspectiveCompareQuery = z.infer<typeof perspectiveCompareQuerySchema>;
+
+// FR-PSP-03: author deletion requests and administrative removal.
+export const DELETION_REASON_MAX = 2000;
+export const DELETION_NOTE_MAX = 2000;
+
+export const deletionRequestCreateSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'A reason is required.')
+    .max(DELETION_REASON_MAX, `Reason must be ${DELETION_REASON_MAX} characters or fewer.`),
+});
+
+export type DeletionRequestCreateInput = z.infer<typeof deletionRequestCreateSchema>;
+
+export const deletionRequestListQuerySchema = z.object({
+  status: z.enum(['pending', 'approved', 'rejected']).optional(),
+});
+
+export type DeletionRequestListQuery = z.infer<typeof deletionRequestListQuerySchema>;
+
+export const deletionRequestDecisionSchema = z.object({
+  decision: z.enum(['approve', 'reject'], {
+    errorMap: () => ({ message: 'Decision must be either approve or reject.' }),
+  }),
+  note: z
+    .string()
+    .trim()
+    .max(DELETION_NOTE_MAX, `Note must be ${DELETION_NOTE_MAX} characters or fewer.`)
+    .optional(),
+});
+
+export type DeletionRequestDecisionInput = z.infer<typeof deletionRequestDecisionSchema>;
+
+export const adminPerspectiveDeleteSchema = z.object({
+  reason: z
+    .string()
+    .trim()
+    .min(1, 'A reason is required.')
+    .max(DELETION_REASON_MAX, `Reason must be ${DELETION_REASON_MAX} characters or fewer.`),
+});
+
+export type AdminPerspectiveDeleteInput = z.infer<typeof adminPerspectiveDeleteSchema>;
+
+export const adminPerspectiveDeleteQuerySchema = z.object({
+  hard: z.enum(['true', 'false']).optional(),
+});
+
+export type AdminPerspectiveDeleteQuery = z.infer<typeof adminPerspectiveDeleteQuerySchema>;

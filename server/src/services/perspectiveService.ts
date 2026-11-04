@@ -27,6 +27,7 @@ export interface PerspectiveDto {
   references: string[];
   upvoteCount: number;
   hasUpvoted: boolean;
+  deletionRequestPending: boolean;
   createdAt: Date;
 }
 
@@ -97,6 +98,7 @@ async function toDtos(
   const authorLabels = await fingerprintRepository.topCategoryLabelsByUserIds([
     ...new Set(rows.map((row) => row.author_id)),
   ]);
+  const pendingDeletion = await perspectiveRepository.pendingDeletionRequestIds(ids);
   return rows.map((row) => ({
     id: row.id,
     topicId: row.topic_id,
@@ -110,6 +112,7 @@ async function toDtos(
     references: row.reference_urls,
     upvoteCount: counts.get(row.id) ?? 0,
     hasUpvoted: voted.has(row.id),
+    deletionRequestPending: pendingDeletion.has(row.id),
     createdAt: row.created_at,
   }));
 }
@@ -161,6 +164,7 @@ async function create(
     references: row.reference_urls,
     upvoteCount: 0,
     hasUpvoted: false,
+    deletionRequestPending: false,
     createdAt: row.created_at,
   };
 }
