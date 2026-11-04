@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import { ChevronDown, Clock, Flag, Trash2 } from 'lucide-react';
 import type { Perspective } from '../../api/types';
+import { AttachmentList } from '../attachments/AttachmentList';
 import { UpvoteButton } from './UpvoteButton';
 
 interface Props {
@@ -84,6 +85,8 @@ export function PerspectiveCard(p: Props) {
 
           <h4 className={`${h4} mt-5`}>Proposed Solution</h4>
           <p className="mt-1 text-base text-body">{t.proposedSolution}</p>
+
+          <AttachmentList attachments={t.attachments} className="mt-4" />
 
           <button
             type="button"

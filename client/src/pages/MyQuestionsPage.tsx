@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 import { CheckCircle2, Clock, Edit2, HelpCircle, Trash2, XCircle } from 'lucide-react';
 import { QUESTION_TAGS_MAX, questionUpdateSchema } from '@structured-qa/shared';
 import { PageShell } from '../components/layout/PageShell';
+import { AttachmentList } from '../components/attachments/AttachmentList';
 import { Button, LinkButton } from '../components/ui/Button';
 import { deleteQuestion, listMyQuestions, updateQuestion } from '../api/questions';
 import { listCategories, listTags } from '../api/taxonomy';
@@ -421,6 +422,7 @@ export function MyQuestionsPage() {
                                 ))}
                               </ul>
                             )}
+                            <AttachmentList attachments={question.attachments} className="mt-3" />
                             {question.status === 'rejected' && question.rejectionReason && (
                               <p
                                 data-testid="question-rejection-reason"

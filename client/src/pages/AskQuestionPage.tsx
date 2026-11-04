@@ -7,6 +7,7 @@ import {
   questionCreateSchema,
 } from '@structured-qa/shared';
 import { PageShell } from '../components/layout/PageShell';
+import { AttachmentPicker } from '../components/attachments/AttachmentPicker';
 import { Button, LinkButton } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { clearDraft, loadDraft, useQuestionDraft, useUnsavedChangesWarning } from '../hooks/useQuestionDraft';
@@ -59,7 +60,7 @@ function Gate({ reason }: GateProps) {
 }
 
 type Errors = Partial<
-  Record<'title' | 'description' | 'category' | 'tags' | 'techStack', string>
+  Record<'title' | 'description' | 'category' | 'tags' | 'techStack' | 'attachments', string>
 >;
 
 const EMPTY_DRAFT = {
@@ -77,6 +78,8 @@ export function AskQuestionPage() {
   const [categoryId, setCategoryId] = useState('');
   const [techStack, setTechStack] = useState('');
   const [tagIds, setTagIds] = useState<string[]>([]);
+  const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
+  const [attachmentsUploading, setAttachmentsUploading] = useState(false);
   const [errors, setErrors] = useState<Errors>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
@@ -136,6 +139,7 @@ export function AskQuestionPage() {
     description !== '' ||
     techStack !== '' ||
     tagIds.length > 0 ||
+    attachmentIds.length > 0 ||
     categoryId !== '';
   useUnsavedChangesWarning(dirty && result === null);
 
@@ -161,6 +165,7 @@ export function AskQuestionPage() {
       categoryId,
       techStack: techStack.trim() === '' ? undefined : techStack,
       tagIds,
+      attachmentIds,
     });
     if (!parsed.success) {
       const next: Errors = {};
@@ -171,7 +176,9 @@ export function AskQuestionPage() {
             ? 'category'
             : field === 'tagIds'
               ? 'tags'
-              : field === 'techStack'
+              : field === 'attachmentIds'
+                ? 'attachments'
+                : field === 'techStack'
                 ? 'techStack'
                 : field === 'title' || field === 'description'
                   ? field
@@ -421,9 +428,22 @@ export function AskQuestionPage() {
                     </p>
                   )}
                 </fieldset>
+                <AttachmentPicker
+                  onChange={(ids, uploading) => {
+                    setAttachmentIds(ids);
+                    setAttachmentsUploading(uploading);
+                  }}
+                />
+                {errors.attachments && (
+                  <p role="alert" className={errorText} data-testid="question-attachments-error">
+                    {errors.attachments}
+                  </p>
+                )}
                 <Button
                   type="submit"
-                  disabled={submitting || taxonomyLoading || Boolean(taxonomyError)}
+                  disabled={
+                    submitting || taxonomyLoading || Boolean(taxonomyError) || attachmentsUploading
+                  }
                   aria-busy={submitting}
                   data-testid="question-submit-button"
                 >

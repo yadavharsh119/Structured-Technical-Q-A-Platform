@@ -12,6 +12,7 @@ import {
   perspectiveCreateSchema,
 } from '@structured-qa/shared';
 import { PageShell } from '../components/layout/PageShell';
+import { AttachmentPicker } from '../components/attachments/AttachmentPicker';
 import { Button, LinkButton } from '../components/ui/Button';
 import { useAuth } from '../context/AuthContext';
 import { getTopic } from '../api/topics';
@@ -76,6 +77,8 @@ export function SubmitPerspectivePage() {
   const [errors, setErrors] = useState<Record<string, string>>({});
   const [submitting, setSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState<string | null>(null);
+  const [attachmentIds, setAttachmentIds] = useState<string[]>([]);
+  const [attachmentsUploading, setAttachmentsUploading] = useState(false);
 
   const { lastSaved } = usePerspectiveDraft(slug, {
     proposedSolution,
@@ -230,6 +233,7 @@ export function SubmitPerspectivePage() {
       limitations: limitations.map((l) => l.trim()).filter(Boolean),
       codeSnippets,
       references,
+      attachmentIds,
     };
 
     const parsed = perspectiveCreateSchema.safeParse(payload);
@@ -733,11 +737,27 @@ export function SubmitPerspectivePage() {
               )}
             </div>
 
+            <div className="rounded-xl border border-line bg-tint/20 p-5">
+              <AttachmentPicker
+                onChange={(ids, uploading) => {
+                  setAttachmentIds(ids);
+                  setAttachmentsUploading(uploading);
+                }}
+              />
+              {errorFor('attachmentIds') && (
+                <p className={errorClass}>{errorFor('attachmentIds')}</p>
+              )}
+            </div>
+
             <div className="flex flex-wrap items-center justify-between gap-4 border-t border-line pt-6">
               <LinkButton href={`/topics/${slug}`} variant="outline" data-testid="perspective-cancel-link">
                 Cancel
               </LinkButton>
-              <Button type="submit" disabled={submitting} data-testid="perspective-submit-button">
+              <Button
+                type="submit"
+                disabled={submitting || attachmentsUploading}
+                data-testid="perspective-submit-button"
+              >
                 {submitting ? 'Submitting Perspective...' : 'Submit Perspective'}
               </Button>
             </div>

@@ -1,4 +1,4 @@
-import type { ModerationReportReason, ReportStatus } from '@structured-qa/shared';
+import type { AttachmentDto, ModerationReportReason, ReportStatus } from '@structured-qa/shared';
 
 export interface Category {
   id: string;
@@ -24,6 +24,7 @@ export interface Question {
   topicId: string | null;
   createdAt: string;
   tags: string[];
+  attachments: AttachmentDto[];
   authorUsername?: string;
 }
 
@@ -65,6 +66,7 @@ export interface Perspective {
   upvoteCount: number;
   hasUpvoted: boolean;
   deletionRequestPending: boolean;
+  attachments: AttachmentDto[];
   createdAt: string;
 }
 

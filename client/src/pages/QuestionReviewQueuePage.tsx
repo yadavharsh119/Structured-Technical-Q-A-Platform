@@ -15,6 +15,7 @@ import {
   questionRejectSchema,
 } from '@structured-qa/shared';
 import { PageShell } from '../components/layout/PageShell';
+import { AttachmentList } from '../components/attachments/AttachmentList';
 import { Button } from '../components/ui/Button';
 import { approveQuestion, listPendingQuestions, rejectQuestion } from '../api/questions';
 import { listCategories, listTags } from '../api/taxonomy';
@@ -437,6 +438,8 @@ export function QuestionReviewQueuePage() {
                           </div>
                         </div>
                       )}
+
+                      <AttachmentList attachments={selectedQuestion.attachments} />
 
                       <div className="pt-4 border-t border-line space-y-3">
                         <h4 className="text-xs font-semibold uppercase text-muted tracking-wider">

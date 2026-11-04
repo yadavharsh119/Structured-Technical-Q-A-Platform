@@ -44,11 +44,12 @@ function withAccountStatusMessage<T>(payload: ApiResponse<T>): ApiResponse<T> {
 
 export async function apiRequest<T>(path: string, init: RequestInit = {}): Promise<ApiResponse<T>> {
   const { headers, ...rest } = init;
+  const isFormData = typeof FormData !== 'undefined' && rest.body instanceof FormData;
   try {
     const res = await fetch(`/api${path}`, {
       credentials: 'include',
       ...rest,
-      headers: { 'Content-Type': 'application/json', ...headers },
+      headers: { ...(isFormData ? {} : { 'Content-Type': 'application/json' }), ...headers },
     });
     return withAccountStatusMessage((await res.json()) as ApiResponse<T>);
   } catch (err) {
