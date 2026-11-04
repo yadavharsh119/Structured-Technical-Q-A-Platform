@@ -61,20 +61,26 @@ export const userRepository = {
         .executeTakeFirstOrThrow(),
       db
         .selectFrom('perspectives')
-        .select(({ fn }) => fn.count<number>('id').as('count'))
-        .where('author_id', '=', userId)
-        .where('status', '=', 'visible')
-        .where('hidden', '=', false)
-        .where('deleted_at', 'is', null)
+        .innerJoin('topics', 'topics.id', 'perspectives.topic_id')
+        .select(({ fn }) => fn.count<number>('perspectives.id').as('count'))
+        .where('perspectives.author_id', '=', userId)
+        .where('perspectives.status', '=', 'visible')
+        .where('perspectives.hidden', '=', false)
+        .where('perspectives.deleted_at', 'is', null)
+        .where('topics.status', '=', 'published')
+        .where('topics.hidden', '=', false)
         .executeTakeFirstOrThrow(),
       db
         .selectFrom('perspectives')
+        .innerJoin('topics', 'topics.id', 'perspectives.topic_id')
         .innerJoin('perspective_votes', 'perspective_votes.perspective_id', 'perspectives.id')
         .select(({ fn }) => fn.count<number>('perspective_votes.user_id').as('count'))
         .where('perspectives.author_id', '=', userId)
         .where('perspectives.status', '=', 'visible')
         .where('perspectives.hidden', '=', false)
         .where('perspectives.deleted_at', 'is', null)
+        .where('topics.status', '=', 'published')
+        .where('topics.hidden', '=', false)
         .executeTakeFirstOrThrow(),
     ]);
 
