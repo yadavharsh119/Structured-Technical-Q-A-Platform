@@ -51,6 +51,14 @@ function alreadyExists(): AppError {
   return new AppError('You have already shared a perspective on this topic.', 409, 'PERSPECTIVE_ALREADY_EXISTS');
 }
 
+function topicArchived(): AppError {
+  return new AppError(
+    'This topic is archived and no longer accepts new perspectives.',
+    409,
+    'TOPIC_ARCHIVED',
+  );
+}
+
 function cannotVoteOwn(): AppError {
   return new AppError('You cannot upvote your own perspective.', 403, 'CANNOT_VOTE_OWN');
 }
@@ -72,9 +80,13 @@ function isUniqueViolation(err: unknown): boolean {
   );
 }
 
-async function publishedTopicBySlug(slug: string, includeHidden = false) {
+async function viewableTopicBySlug(slug: string, includeHidden = false) {
   const topic = await topicRepository.findBySlug(slug);
-  if (!topic || topic.status !== 'published' || (!includeHidden && topic.hidden)) {
+  if (
+    !topic ||
+    (topic.status !== 'published' && topic.status !== 'archived') ||
+    (!includeHidden && topic.hidden)
+  ) {
     throw topicNotFound();
   }
   return topic;
@@ -124,7 +136,10 @@ async function create(
   authorId: string,
 ): Promise<PerspectiveDto> {
   await assertCanContribute(authorId);
-  const topic = await publishedTopicBySlug(topicSlug);
+  const topic = await viewableTopicBySlug(topicSlug);
+  if (topic.status === 'archived') {
+    throw topicArchived();
+  }
 
   const existing = await perspectiveRepository.findByTopicAndAuthor(topic.id, authorId);
   if (existing) {
@@ -177,7 +192,7 @@ async function list(
   viewerId: string | null,
   includeHidden = false,
 ): Promise<PerspectiveDto[]> {
-  const topic = await publishedTopicBySlug(topicSlug, includeHidden);
+  const topic = await viewableTopicBySlug(topicSlug, includeHidden);
   const rows = await perspectiveRepository.listVisibleByTopicId(topic.id, includeHidden);
   const dtos = await toDtos(rows, viewerId);
   if (sort === 'top') {
@@ -223,7 +238,7 @@ async function compare(
   viewerId: string | null,
   includeHidden = false,
 ): Promise<PerspectiveDto[]> {
-  const topic = await publishedTopicBySlug(topicSlug, includeHidden);
+  const topic = await viewableTopicBySlug(topicSlug, includeHidden);
 
   const ids = idsParam
     .split(',')

@@ -142,4 +142,16 @@ export const questionRepository = {
       .returningAll()
       .executeTakeFirstOrThrow();
   },
+
+  async moveToTopic(
+    sourceTopicId: string,
+    destinationTopicId: string,
+    dbi: DbHandle = db,
+  ): Promise<void> {
+    await dbi
+      .updateTable('questions')
+      .set({ topic_id: destinationTopicId })
+      .where('topic_id', '=', sourceTopicId)
+      .execute();
+  },
 };

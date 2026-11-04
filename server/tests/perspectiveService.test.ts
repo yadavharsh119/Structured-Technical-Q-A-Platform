@@ -152,12 +152,13 @@ describe('perspectiveService.create', () => {
     expect(mockedPerspective.create).not.toHaveBeenCalled();
   });
 
-  it('throws TOPIC_NOT_FOUND when the topic is not published', async () => {
+  it('throws TOPIC_ARCHIVED when the topic is archived', async () => {
     mockedTopic.findBySlug.mockResolvedValue(topicRow({ status: 'archived' }));
 
     await expect(
       perspectiveService.create('debugging-deadlocks', createInput(), AUTHOR),
-    ).rejects.toMatchObject({ statusCode: 404, code: 'TOPIC_NOT_FOUND' });
+    ).rejects.toMatchObject({ statusCode: 409, code: 'TOPIC_ARCHIVED' });
+    expect(mockedPerspective.create).not.toHaveBeenCalled();
   });
 
   it('throws PERSPECTIVE_ALREADY_EXISTS on a second attempt by the same user', async () => {

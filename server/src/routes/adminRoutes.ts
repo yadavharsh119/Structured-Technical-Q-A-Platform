@@ -11,6 +11,7 @@ import {
   listAuditLogs,
   listUsers,
 } from '../controllers/adminController';
+import { merge as mergeTopics } from '../controllers/topicController';
 
 const router = Router();
 
@@ -28,5 +29,8 @@ router.post('/deletion-requests/:id/decision', requireRole('admin'), decide);
 
 // FR-PSP-03: administrators may soft-delete or hard-delete any perspective.
 router.delete('/perspectives/:id', requireRole('admin'), removePerspective);
+
+// FR-TOP-03: topic merge is explicitly admin-only (moderators get 403).
+router.post('/topics/merge', requireRole('admin'), mergeTopics);
 
 export default router;

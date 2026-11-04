@@ -201,3 +201,6 @@ export * from './profile';
 
 // Admin user management and audit log viewer (FR-MOD-03, FR-ADM-01, FR-ADM-03).
 export * from './admin';
+
+// Topic administration: create, edit, archive and merge (FR-TOP-01 - FR-TOP-04).
+export * from './topics';

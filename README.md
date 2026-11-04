@@ -29,6 +29,7 @@ This project is organized as an **npm workspaces monorepo**:
 - Perspective deletion requests with admin approve/reject, plus admin soft/hard removal
 - Admin user management: search/filter users, role changes, warnings, suspensions, bans and restores
 - Read-only audit log viewer with actor/action/date filtering
+- Topic administration: curated topic creation, editing, archiving, merging and slug redirects
 
 ## Not built yet (deferred)
 
@@ -37,7 +38,6 @@ This project is organized as an **npm workspaces monorepo**:
 - Search: caching
 - Admin dashboard
 - Analytics dashboards
-- Topic merge/archive
 - Attachments
 
 ## Deferred
@@ -47,7 +47,6 @@ The following moderation scope is intentionally deferred:
 - Moderation and report-status emails
 - Multi-factor authentication (MFA)
 - Branded email templates beyond plain text
-- Audit log entries for moderator actions
 - Automated content screening
 - Expert fingerprint profile editing
 - Expert fingerprint caching
@@ -57,6 +56,9 @@ The following moderation scope is intentionally deferred:
 - Account reactivation
 - Deletion-request notification emails
 - Undo/restore for deleted perspectives
+- Topic unarchive
+- Undo topic merge
+- Category and tag management (next ticket)
 
 ## Prerequisites
 

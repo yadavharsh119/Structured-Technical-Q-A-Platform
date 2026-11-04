@@ -49,6 +49,7 @@ jest.mock('../src/repositories/topicRepository', () => ({
     listPublished: jest.fn(),
     findBySlug: jest.fn(),
     findById: jest.fn(),
+    findRedirect: jest.fn(),
     existsBySlug: jest.fn(),
     existsByTitle: jest.fn(),
     create: jest.fn(),
@@ -373,8 +374,8 @@ describe('topicService', () => {
     });
   });
 
-  it('getBySlug hides non-published topics', async () => {
-    mockedTopic.findBySlug.mockResolvedValue(topicRow({ status: 'archived' }));
+  it('getBySlug hides non-viewable topics', async () => {
+    mockedTopic.findBySlug.mockResolvedValue(topicRow({ status: 'hidden' }));
 
     await expect(topicService.getBySlug('debugging-deadlocks')).rejects.toMatchObject({
       statusCode: 404,
@@ -394,6 +395,9 @@ describe('topicService', () => {
 
     const detail = await topicService.getBySlug('debugging-deadlocks');
 
+    if (!('topic' in detail)) {
+      throw new Error('Expected topic detail, received redirect');
+    }
     expect(detail.topic.tags).toEqual(['react']);
     expect(detail.questions).toHaveLength(1);
     expect(detail.questions[0]?.authorUsername).toBe('alice');

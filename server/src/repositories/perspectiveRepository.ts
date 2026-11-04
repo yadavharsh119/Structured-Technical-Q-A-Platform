@@ -143,6 +143,37 @@ export const perspectiveRepository = {
     await dbi.updateTable('perspectives').set({ hidden }).where('id', '=', id).execute();
   },
 
+  async conflictingAuthorIds(
+    sourceTopicId: string,
+    destinationTopicId: string,
+    dbi: DbHandle = db,
+  ): Promise<string[]> {
+    const rows = await dbi
+      .selectFrom('perspectives as source')
+      .innerJoin(
+        'perspectives as destination',
+        'destination.author_id',
+        'source.author_id',
+      )
+      .select('source.author_id')
+      .where('source.topic_id', '=', sourceTopicId)
+      .where('destination.topic_id', '=', destinationTopicId)
+      .execute();
+    return [...new Set(rows.map((row) => row.author_id))];
+  },
+
+  async moveToTopic(
+    sourceTopicId: string,
+    destinationTopicId: string,
+    dbi: DbHandle = db,
+  ): Promise<void> {
+    await dbi
+      .updateTable('perspectives')
+      .set({ topic_id: destinationTopicId })
+      .where('topic_id', '=', sourceTopicId)
+      .execute();
+  },
+
   async countVotesByPerspectiveIds(
     ids: string[],
     dbi: DbHandle = db,
