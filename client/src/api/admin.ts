@@ -4,6 +4,11 @@ import type {
   ADMIN_USER_ROLES,
   ADMIN_USER_STATUSES,
   ApiResponse,
+  CategoryCreateInput,
+  CategoryUpdateInput,
+  TagCreateInput,
+  TagMergeInput,
+  TagUpdateInput,
 } from '@structured-qa/shared';
 import { apiRequest } from './client';
 
@@ -41,6 +46,25 @@ export interface AdminUserActionInput {
   action: AdminUserAction;
   reason: string;
   durationDays?: number;
+}
+
+export interface AdminCategory {
+  id: string;
+  name: string;
+  description: string | null;
+  parentId: string | null;
+  isActive: boolean;
+}
+
+export interface AdminTag {
+  id: string;
+  name: string;
+  isActive: boolean;
+}
+
+export interface TagMergeResult {
+  source: AdminTag;
+  destination: AdminTag;
 }
 
 export interface AuditLog {
@@ -112,4 +136,55 @@ export function listAuditLogs(query: AuditLogQuery = {}): Promise<ApiResponse<Au
   params.set('page', String(query.page ?? 1));
 
   return apiRequest(`/admin/audit-logs?${params.toString()}`);
+}
+
+export function listAdminCategories(): Promise<ApiResponse<{ categories: AdminCategory[] }>> {
+  return apiRequest('/admin/categories');
+}
+
+export function createAdminCategory(
+  input: CategoryCreateInput,
+): Promise<ApiResponse<{ category: AdminCategory }>> {
+  return apiRequest('/admin/categories', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateAdminCategory(
+  categoryId: string,
+  input: CategoryUpdateInput,
+): Promise<ApiResponse<{ category: AdminCategory }>> {
+  return apiRequest(`/admin/categories/${encodeURIComponent(categoryId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function listAdminTags(): Promise<ApiResponse<{ tags: AdminTag[] }>> {
+  return apiRequest('/admin/tags');
+}
+
+export function createAdminTag(input: TagCreateInput): Promise<ApiResponse<{ tag: AdminTag }>> {
+  return apiRequest('/admin/tags', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
+}
+
+export function updateAdminTag(
+  tagId: string,
+  input: TagUpdateInput,
+): Promise<ApiResponse<{ tag: AdminTag }>> {
+  return apiRequest(`/admin/tags/${encodeURIComponent(tagId)}`, {
+    method: 'PATCH',
+    body: JSON.stringify(input),
+  });
+}
+
+export function mergeAdminTags(input: TagMergeInput): Promise<ApiResponse<TagMergeResult>> {
+  return apiRequest('/admin/tags/merge', {
+    method: 'POST',
+    body: JSON.stringify(input),
+  });
 }

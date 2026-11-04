@@ -134,6 +134,24 @@ export function Navbar() {
                   Manage Topics
                 </Link>
               )}
+              {canReview && (
+                <Link
+                  to="/admin/categories"
+                  data-testid="nav-admin-categories"
+                  className={pageClass('/admin/categories', false)}
+                >
+                  Categories
+                </Link>
+              )}
+              {canReview && (
+                <Link
+                  to="/admin/tags"
+                  data-testid="nav-admin-tags"
+                  className={pageClass('/admin/tags', false)}
+                >
+                  Tags
+                </Link>
+              )}
               {isAdmin && (
                 <Link
                   to="/admin/users"
@@ -323,6 +341,26 @@ export function Navbar() {
                       className={pageClass('/admin/topics', true)}
                     >
                       Manage Topics
+                    </Link>
+                  )}
+                  {canReview && (
+                    <Link
+                      to="/admin/categories"
+                      onClick={() => setOpen(false)}
+                      data-testid="nav-admin-categories-mobile"
+                      className={pageClass('/admin/categories', true)}
+                    >
+                      Categories
+                    </Link>
+                  )}
+                  {canReview && (
+                    <Link
+                      to="/admin/tags"
+                      onClick={() => setOpen(false)}
+                      data-testid="nav-admin-tags-mobile"
+                      className={pageClass('/admin/tags', true)}
+                    >
+                      Tags
                     </Link>
                   )}
                   {isAdmin && (

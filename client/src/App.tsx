@@ -25,6 +25,8 @@ import { AdminDashboardPage } from './pages/AdminDashboardPage';
 import { AdminUsersPage } from './pages/AdminUsersPage';
 import { AdminAuditLogsPage } from './pages/AdminAuditLogsPage';
 import { AdminTopicsPage } from './pages/AdminTopicsPage';
+import { AdminCategoriesPage } from './pages/AdminCategoriesPage';
+import { AdminTagsPage } from './pages/AdminTagsPage';
 import { DeletionRequestsPage } from './pages/DeletionRequestsPage';
 import { SearchPage } from './pages/SearchPage';
 import { NotFoundPage } from './pages/NotFoundPage';
@@ -144,6 +146,22 @@ export function App() {
             element={
               <ProtectedRoute allowedRoles={['admin']} forbiddenRedirectTo="/">
                 <AdminUsersPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/categories"
+            element={
+              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]} forbiddenRedirectTo="/">
+                <AdminCategoriesPage />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/admin/tags"
+            element={
+              <ProtectedRoute allowedRoles={[...REVIEWER_ROLES]} forbiddenRedirectTo="/">
+                <AdminTagsPage />
               </ProtectedRoute>
             }
           />
