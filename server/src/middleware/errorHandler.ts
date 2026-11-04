@@ -29,10 +29,23 @@ export function errorHandler(
   res: Response<ApiResponse<never>>,
   _next: NextFunction,
 ): void {
-  const statusCode = 'statusCode' in err ? err.statusCode : 500;
-  const errorCode = 'code' in err ? err.code : ApiErrorCode.INTERNAL_SERVER_ERROR;
+  const isAppError = err instanceof AppError;
+  const rawStatus =
+    'statusCode' in err
+      ? err.statusCode
+      : 'status' in err && typeof (err as { status?: unknown }).status === 'number'
+        ? (err as { status: number }).status
+        : undefined;
+  const statusCode =
+    typeof rawStatus === 'number' && rawStatus >= 400 && rawStatus < 600 ? rawStatus : 500;
+  const errorCode = isAppError
+    ? err.code
+    : statusCode === 400
+      ? ApiErrorCode.VALIDATION_ERROR
+      : ApiErrorCode.INTERNAL_SERVER_ERROR;
 
-  // Log error details internally (SEC-18 / QA-04)
+  // Log error details internally (SEC-18 / QA-04). The raw error is never
+  // serialised into the HTTP response.
   logger.error({
     err,
     url: req.originalUrl,
@@ -40,16 +53,22 @@ export function errorHandler(
     statusCode,
   });
 
-  const isProduction = config.NODE_ENV === 'production';
-  const responseMessage =
-    statusCode >= 500 && isProduction ? 'An unexpected internal error occurred' : err.message;
+  const isDevelopment = config.NODE_ENV === 'development';
+  const responseMessage = isDevelopment
+    ? err.message
+    : isAppError && statusCode < 500
+      ? err.message
+      : statusCode === 400
+        ? 'Invalid request.'
+        : 'An unexpected internal error occurred';
 
   res.status(statusCode).json({
     success: false,
     error: {
       code: errorCode,
       message: responseMessage,
-      ...('details' in err && err.details ? { details: err.details } : {}),
+      // AppError details are authored by the application and safe to expose.
+      ...(isAppError && err.details !== undefined ? { details: err.details } : {}),
     },
   });
 }

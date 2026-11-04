@@ -26,6 +26,11 @@ const topicSlugSchema = z
   .min(1, 'Slug is required.')
   .max(TOPIC_SLUG_MAX, `Slug must be ${TOPIC_SLUG_MAX} characters or fewer.`);
 
+// Route param /topics/:slug and /topics/:slug/perspectives
+export const topicSlugParamSchema = z.object({ slug: topicSlugSchema });
+
+export type TopicSlugParam = z.infer<typeof topicSlugParamSchema>;
+
 const topicTagIdsSchema = z
   .array(uuidSchema)
   .max(QUESTION_TAGS_MAX, `Pick up to ${QUESTION_TAGS_MAX} tags.`)

@@ -8,7 +8,8 @@ const envSchema = z.object({
   NODE_ENV: z.enum(['development', 'test', 'production']).default('development'),
   PORT: z.coerce.number().default(5000),
   CLIENT_URL: z.string().default('http://localhost:3000'),
-  CORS_ORIGIN: z.string().default('http://localhost:3000'),
+  // Comma-separated allowlist of trusted browser origins (COM-03).
+  CORS_ORIGINS: z.string().default('http://localhost:3000'),
   LOG_LEVEL: z.string().default('info'),
   DATABASE_URL: z
     .string()
@@ -23,13 +24,15 @@ const envSchema = z.object({
   APP_BASE_URL: z.string().default('http://localhost:3000'),
   // Directory for uploaded files. Must stay outside any web root.
   UPLOAD_DIR: z.string().default('uploads'),
-  // Set COOKIE_SECURE=true in production (behind HTTPS)
+  // Secure cookies are mandatory in production; in local development they are
+  // opt-in so the app keeps working over plain HTTP.
   COOKIE_SECURE: z
     .string()
     .optional()
     .transform((value) => {
+      if (process.env.NODE_ENV === 'production') return true;
       if (value !== undefined) return value === 'true';
-      return process.env.NODE_ENV === 'production';
+      return false;
     }),
 });
 

@@ -2,11 +2,12 @@ import { Router } from 'express';
 import { requireAuth, requireVerified } from '../middleware/auth';
 import { compare, create, list, toggleUpvote } from '../controllers/perspectiveController';
 import { create as createDeletionRequest } from '../controllers/deletionRequestController';
+import { contentLimiter } from '../middleware/rateLimiters';
 
 const router = Router();
 
 // Perspectives live under their topic slug; listing and comparing are public
-router.post('/topics/:slug/perspectives', requireVerified, create);
+router.post('/topics/:slug/perspectives', requireVerified, contentLimiter, create);
 router.get('/topics/:slug/perspectives', list);
 router.get('/topics/:slug/compare', compare);
 

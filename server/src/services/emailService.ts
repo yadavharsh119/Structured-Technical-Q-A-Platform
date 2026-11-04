@@ -13,14 +13,15 @@ export interface EmailService {
   ): Promise<void>;
 }
 
-// Dev email capture (no SMTP in this ticket): logs the link at info level.
+// Dev email capture (no SMTP in this ticket). The link contains a raw token,
+// so it is deliberately never logged.
 export class LogEmailService implements EmailService {
-  async sendVerificationEmail(to: string, link: string): Promise<void> {
-    logger.info({ to, link }, 'Verification email (dev capture)');
+  async sendVerificationEmail(to: string, _link: string): Promise<void> {
+    logger.info({ to }, 'Verification email queued (dev capture)');
   }
 
-  async sendPasswordResetEmail(to: string, link: string): Promise<void> {
-    logger.info({ to, link }, 'Password reset email (dev capture)');
+  async sendPasswordResetEmail(to: string, _link: string): Promise<void> {
+    logger.info({ to }, 'Password reset email queued (dev capture)');
   }
 
   async sendAccountActionEmail(

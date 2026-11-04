@@ -9,10 +9,11 @@ import {
   update,
 } from '../controllers/questionController';
 import { requireAuth, requireRole, requireVerified } from '../middleware/auth';
+import { contentLimiter } from '../middleware/rateLimiters';
 
 const router = Router();
 
-router.post('/', requireVerified, create);
+router.post('/', requireVerified, contentLimiter, create);
 router.get('/mine', requireAuth, listMine);
 router.get('/pending', requireAuth, requireRole('moderator'), listPending);
 router.patch('/:id', requireAuth, update);

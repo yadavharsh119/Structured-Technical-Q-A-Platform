@@ -9,19 +9,51 @@ import { attachSession } from './middleware/auth';
 import { ApiErrorCode } from '@structured-qa/shared';
 import { config } from './config';
 
+const allowedOrigins = new Set(
+  config.CORS_ORIGINS.split(',')
+    .map((origin) => origin.trim())
+    .filter(Boolean),
+);
+
+const corsMiddleware = cors({
+  origin: (origin, callback) => callback(null, origin !== undefined && allowedOrigins.has(origin)),
+  credentials: true,
+  optionsSuccessStatus: 204,
+});
+
 export function createApp(): express.Application {
   const app = express();
 
-  // Security Headers (SEC-10)
-  app.use(helmet());
-
-  // CORS allowlist configuration (COM-03)
+  // Security Headers (SEC-10): API responses need a locked-down CSP and
+  // clickjacking protections; HSTS is always emitted for HTTPS deployments.
   app.use(
-    cors({
-      origin: config.CORS_ORIGIN,
-      credentials: true,
+    helmet({
+      contentSecurityPolicy: {
+        useDefaults: false,
+        directives: {
+          defaultSrc: ["'none'"],
+          baseUri: ["'none'"],
+          frameAncestors: ["'none'"],
+          formAction: ["'none'"],
+        },
+      },
+      frameguard: { action: 'deny' },
+      noSniff: true,
+      strictTransportSecurity: { maxAge: 15552000, includeSubDomains: true },
     }),
   );
+
+  // CORS allowlist configuration (COM-03). Skip the middleware entirely for
+  // untrusted or missing origins so no CORS headers (including credentials)
+  // are emitted for them.
+  app.use((req: Request, res: Response, next: express.NextFunction) => {
+    const origin = req.headers.origin;
+    if (origin && allowedOrigins.has(origin)) {
+      corsMiddleware(req, res, next);
+      return;
+    }
+    next();
+  });
 
   // Body Parsing
   app.use(express.json({ limit: '1mb' }));

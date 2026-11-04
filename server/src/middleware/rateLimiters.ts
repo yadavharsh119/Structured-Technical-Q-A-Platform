@@ -1,18 +1,39 @@
 import { rateLimit } from 'express-rate-limit';
 import { config } from '../config';
 
+// Tests opt in with RATE_LIMIT_ENABLED=true when they exercise limiting.
+const skipInTest = (): boolean =>
+  config.NODE_ENV === 'test' && process.env.RATE_LIMIT_ENABLED !== 'true';
+
 // 20 auth requests per IP per 15 minutes (FR-AUTH-06 / rate limit)
 export const authLimiter = rateLimit({
   windowMs: 15 * 60 * 1000,
   limit: 20,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => config.NODE_ENV === 'test',
+  skip: skipInTest,
   validate: false,
   handler: (_req, res) => {
     res.status(429).json({
       success: false,
-      error: { code: 'RATE_LIMITED', message: 'Too many requests' },
+      error: { code: 'RATE_LIMITED', message: 'Too many requests. Please try again later.' },
+    });
+  },
+});
+
+// Authenticated content creation (questions, perspectives and reports).
+export const contentLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  limit: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  skip: skipInTest,
+  validate: false,
+  keyGenerator: (req) => req.auth?.user.id ?? req.ip ?? 'unknown',
+  handler: (_req, res) => {
+    res.status(429).json({
+      success: false,
+      error: { code: 'RATE_LIMITED', message: 'Too many submissions. Please try again later.' },
     });
   },
 });
@@ -23,13 +44,16 @@ export const uploadLimiter = rateLimit({
   limit: 30,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => config.NODE_ENV === 'test',
+  skip: skipInTest,
   validate: false,
   keyGenerator: (req) => req.auth?.user.id ?? req.ip ?? 'unknown',
   handler: (_req, res) => {
     res.status(429).json({
       success: false,
-      error: { code: 'RATE_LIMITED', message: 'Too many attachment uploads' },
+      error: {
+        code: 'RATE_LIMITED',
+        message: 'Too many attachment uploads. Please try again later.',
+      },
     });
   },
 });
@@ -40,13 +64,13 @@ export const exportLimiter = rateLimit({
   limit: 3,
   standardHeaders: true,
   legacyHeaders: false,
-  skip: () => config.NODE_ENV === 'test',
+  skip: skipInTest,
   validate: false,
   keyGenerator: (req) => req.auth?.user.id ?? req.ip ?? 'unknown',
   handler: (_req, res) => {
     res.status(429).json({
       success: false,
-      error: { code: 'RATE_LIMITED', message: 'Too many export requests' },
+      error: { code: 'RATE_LIMITED', message: 'Too many export requests. Please try again later.' },
     });
   },
 });

@@ -2,6 +2,7 @@ import type { Request, Response } from 'express';
 import {
   topicCreateSchema,
   topicMergeSchema,
+  topicSlugParamSchema,
   topicUpdateSchema,
 } from '@structured-qa/shared';
 import { topicService } from '../services/topicService';
@@ -19,10 +20,8 @@ export const list = asyncHandler(async (req: Request, res: Response) => {
 });
 
 export const getBySlug = asyncHandler(async (req: Request, res: Response) => {
-  const result = await topicService.getBySlug(
-    req.params.slug ?? '',
-    canSeeHiddenContent(req),
-  );
+  const { slug } = parseBody(topicSlugParamSchema, req.params);
+  const result = await topicService.getBySlug(slug, canSeeHiddenContent(req));
   if ('redirectTo' in result) {
     res
       .status(301)
