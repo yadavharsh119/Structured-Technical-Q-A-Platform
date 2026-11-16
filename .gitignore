@@ -54,3 +54,11 @@ tmp/
 .gemini/
 .kiro/
 .mcp.json
+
+# Python
+venv/
+.venv/
+__pycache__/
+*.pyc
+*.pyo
+
