@@ -1,161 +1,204 @@
 # Structured Technical Q&A Platform
 
-A structured, perspective-based technical question and answer platform built with modern TypeScript, React, Express, and PostgreSQL.
+A full-stack web application where users submit technical questions, moderators curate them into topics, and the community contributes structured perspectives — with upvoting, comparison, role-based moderation, and expert fingerprinting.
 
-## Architecture
+---
 
-This project is organized as an **npm workspaces monorepo**:
+## Features
 
-- **`shared/`**: Shared TypeScript types, interfaces, Zod validation schemas, and application constants used by both frontend and backend.
-- **`server/`**: Express.js REST API structured following the **Controller → Service → Repository** pattern (satisfying QA-01 MVC equivalence), Kysely query builder, structured Pino logging, and centralized error handling.
-- **`client/`**: React 18 SPA bundled with Vite, TypeScript, and styled with Tailwind CSS.
-- **`database/`**: Numbered SQL migrations (`database/migrations/`); the final migration also seeds the launch categories and tags.
-- **`scripts/`**: Utility scripts including the transactional database migration runner (`scripts/migrate.ts`).
+- **Question submission & review queue** — users submit questions; moderators approve and convert them into topics
+- **Structured perspectives** — multiple answers per topic, each following a template (context, approach, trade-offs)
+- **Upvoting** — community voting on perspectives with self-vote prevention
+- **Side-by-side comparison** — compare two perspectives on the same topic
+- **Role-based access** — `user`, `moderator`, and `admin` roles with granular permissions
+- **Admin panel** — manage users, topics, categories, tags, and audit logs
+- **Moderation queue** — flag and review reported content, handle deletion requests
+- **Expert fingerprinting** — scheduled job ranks users by domain expertise signals
+- **File attachments** — upload files to perspectives (stored outside the web root)
+- **Full-text search** — indexed search across topics and questions
+- **Email verification & password reset** — token-based auth flows
+- **Rate limiting & security headers** — Helmet, CORS allowlist, argon2 password hashing, session cookies
+- **End-to-end tests** — Selenium happy-path suite covering the full user journey
 
-## What is built
+---
 
-- Registration, email verification, login/logout with session cookies, and logout from all sessions
-- Account recovery: password reset, resend verification, and logout from all sessions
-- Asking questions, plus editing and deleting your own questions from My Questions
-- Reviewer queue for approving questions and creating a topic from an approved question
-- Topic list and topic pages
-- Perspectives per topic, including author attribution and sorting
-- Perspective upvotes with toggle support and self-vote prevention
-- Side-by-side comparison of selected perspectives
-- Content reporting and a moderator queue (reports, dismiss/hide/escalate)
-- Expert fingerprint: top categories per user, public/private visibility, daily recalculation
-- Profile management: public profiles, editable bio/skills/interests, email privacy, password change
-- Account data export (ZIP download) and account deactivation
-- Perspective deletion requests with admin approve/reject, plus admin soft/hard removal
-- Admin user management: search/filter users, role changes, warnings, suspensions, bans and restores
-- Read-only audit log viewer with actor/action/date filtering
-- Topic administration: curated topic creation, editing, archiving, merging and slug redirects
-- Category and tag management: create, edit, deactivate, and merge tags
-- File attachments on questions and perspectives: upload, guarded download, and hard-delete cleanup
+## Tech Stack
 
-## Not built yet (deferred)
+| Layer | Technology |
+|---|---|
+| **Frontend** | React 18, TypeScript, Vite, Tailwind CSS, React Router v6 |
+| **Backend** | Node.js, Express 4, TypeScript, Kysely (query builder) |
+| **Database** | PostgreSQL 16 |
+| **Shared** | `@structured-qa/shared` — Zod schemas and types shared between client and server |
+| **Auth** | Cookie-based sessions, argon2 password hashing |
+| **Validation** | Zod (server + client) |
+| **Logging** | Pino + pino-http |
+| **Testing** | Jest (unit/integration, server), Selenium (e2e) |
+| **Infrastructure** | Docker Compose (PostgreSQL), npm workspaces monorepo |
+| **Tooling** | ESLint, Prettier, tsx (dev server) |
 
-- Search: date range filter, author filter, upvote-count filter
-- Search: typo tolerance and autocomplete
-- Search: caching
-- Admin dashboard
-- Analytics dashboards
+---
 
-## Deferred
+## Folder Structure
 
-The following moderation scope is intentionally deferred:
+```
+.
+├── client/                  # React SPA (Vite)
+│   ├── src/
+│   │   ├── api/             # Typed API client functions
+│   │   ├── components/      # Reusable UI components
+│   │   ├── context/         # AuthContext
+│   │   ├── hooks/           # Custom React hooks
+│   │   ├── pages/           # Route-level page components
+│   │   ├── services/        # Higher-level service wrappers
+│   │   └── types/           # Frontend-only TypeScript types
+│   └── index.html
+├── server/                  # Express API
+│   └── src/
+│       ├── config/          # Environment config loader
+│       ├── controllers/     # Route handlers
+│       ├── jobs/            # Scheduled background jobs
+│       ├── middleware/      # Auth, error handling, rate limiters, logging
+│       ├── repositories/    # Database access layer (Kysely)
+│       ├── routes/          # Express router definitions
+│       ├── services/        # Business logic
+│       └── types/           # Server-only TypeScript types
+├── shared/                  # @structured-qa/shared package
+│   └── src/
+│       ├── schemas/         # Zod schemas (shared validation)
+│       ├── types/           # Shared TypeScript types
+│       └── constants/       # Shared constants
+├── database/
+│   └── migrations/          # Numbered SQL migration files (001–013)
+├── e2e/                     # Selenium end-to-end test suite
+│   ├── happy_path.py        # Main test script
+│   └── requirements.txt
+├── scripts/
+│   └── migrate.ts           # DB migration runner
+├── docker-compose.yml       # PostgreSQL service
+├── .env.example             # Environment variable template
+└── package.json             # npm workspaces root
+```
 
-- Moderation and report-status emails
-- Multi-factor authentication (MFA)
-- Branded email templates beyond plain text
-- Automated content screening
-- Expert fingerprint profile editing
-- Expert fingerprint caching
-- Configurable expert fingerprint weighting
-- Profile picture upload
-- Email delivery of account data export
-- Account reactivation
-- Deletion-request notification emails
-- Undo/restore for deleted perspectives
-- Topic unarchive
-- Undo topic merge
-- Tag suggestions
-- Category and tag usage statistics
-- Category and tag delete endpoints
-- Attachment virus scanning
-- Attachment image resizing
-- Profile picture upload as an attachment
-- Editing attachments on a pending question
-- Orphaned attachment cleanup job
-- 50 GB attachment quota check
+---
 
 ## Prerequisites
 
-- **Node.js**: 20 or newer (developed and verified with Node 24.18.0)
-- **npm**: 10 or newer
-- **Docker & Docker Compose** (for local PostgreSQL 16) or a local PostgreSQL 16 instance
-- **Python 3.9+ and Chrome** only for the optional end-to-end test
+- **Node.js** v20+
+- **npm** v10+
+- **Docker & Docker Compose** (for the database) — or a local PostgreSQL 16 instance
+- **Python 3.10+** and **Google Chrome** (for e2e tests only)
 
-## Quick Start
+---
 
-### 1. Install Dependencies
+## Setup & Install
+
+### 1. Clone the repository
+
+```bash
+git clone https://github.com/yadavharsh119/Structured-Technical-Q-A-Platform.git
+cd Structured-Technical-Q-A-Platform
+```
+
+### 2. Install dependencies
+
 ```bash
 npm install
 ```
 
-### 2. Configure the Environment
-Copy the example environment file to the repository root and to `server/`:
+### 3. Configure environment variables
+
 ```bash
+# Copy the template to both locations
 cp .env.example .env
 cp .env.example server/.env
 ```
 
-npm workspace scripts run with `server/` as their working directory, so the API, migrations and tests read `server/.env`, while Docker Compose and the end-to-end test read the root `.env`. Keep both copies in sync.
+Then fill in your values — see [Environment Variables](#environment-variables) below.
 
-If host port 5432 is already in use, choose another free port (for example 5433). Set `DB_PORT=5433` in both `.env` files and update `DATABASE_URL` in both files to the same port:
-```dotenv
-DATABASE_URL=postgres://postgres:postgrespassword@localhost:5433/structured_qa
-```
+### 4. Start the database
 
-### 3. Start the Database
 ```bash
 docker-compose up -d
 ```
 
-### 4. Run Migrations
+### 5. Run database migrations
+
 ```bash
 npm run db:migrate
 ```
 
-### 5. Start the Development Servers
-Start the backend API:
+---
+
+## Running the App
+
+### Development
+
+Open two terminals:
+
 ```bash
+# Terminal 1 — API server (http://localhost:5000)
 npm run dev:server
-```
-In a second terminal, start the frontend client:
-```bash
+
+# Terminal 2 — React client (http://localhost:3000)
 npm run dev:client
 ```
 
-The client's `predev` and `prebuild` hooks build the `shared/` workspace first, so no separate shared build step is needed. Open `http://localhost:3000`; the Vite dev server proxies `/api` requests to the API on port 5000. For an automated end-to-end check, see [End-to-End Test](#end-to-end-test).
-
-## Available Scripts
-
-- `npm run dev:server`: Starts the API in watch mode on port 5000
-- `npm run dev:client`: Starts the Vite dev server on port 3000 (after building `shared/`)
-- `npm run build`: Builds all workspaces in order (`shared`, `server`, `client`)
-- `npm run typecheck`: Runs TypeScript compiler checks across all workspaces
-- `npm run test`: Runs all workspace test suites; the server integration suite requires a migrated database
-- `npm run lint`: Runs ESLint across TypeScript source files
-- `npm run format`: Formats code with Prettier
-- `npm run format:check`: Validates code formatting
-- `npm run db:migrate`: Executes pending database migrations
-
-## Tests
-
-`npm run test` runs every workspace test suite: the shared package's unit tests and the server's Jest integration suite against a real PostgreSQL database (there is no mocked or in-memory database). PostgreSQL must be running and migrated (`npm run db:migrate`) first, and the server tests read the connection from `server/.env`. The tests create uniquely named users and remove them afterwards.
-
-## Verification Endpoints
-
-- Health check: `GET http://localhost:5000/api/health`
-- Frontend UI: `http://localhost:3000`
-
-## End-to-End Test
-
-`e2e/happy_path.py` is a Selenium happy path covering registration, question
-review, topic creation, perspectives, upvotes and comparison against the real
-client, API and PostgreSQL. It creates timestamped test users and removes them
-and their content in a `finally` block.
-
-PostgreSQL must be running and migrated, and the backend (port 5000) and client
-(port 3000) must be running. Then:
+### Production build
 
 ```bash
-python -m pip install -r e2e/requirements.txt
-python e2e/happy_path.py           # headless Chrome
+npm run build
+npm run start --workspace=server
+```
+
+---
+
+## Running Tests
+
+### Unit / Integration tests (Jest)
+
+```bash
+npm test
+```
+
+### End-to-end tests (Selenium)
+
+Ensure the database, server, and client are all running first, then:
+
+```bash
+pip install -r e2e/requirements.txt
+
+python e2e/happy_path.py           # headless Chrome (default)
 python e2e/happy_path.py --headed  # watch the browser
 ```
 
-Defaults for `BASE_URL` and `DATABASE_URL` come from the root `.env`; both can
-be overridden with environment variables. Failures stop the run and save a
-screenshot to `e2e/artifacts/`. See `e2e/README.md` for details.
+The script prints `PASS` / `FAIL` for each step and exits non-zero on failure. Screenshots of failed steps are saved to `e2e/artifacts/`.
+
+> **Note:** The API rate-limits auth endpoints to 20 requests per 15 minutes. A single e2e run uses 8.
+
+---
+
+## Environment Variables
+
+Copy `.env.example` to `.env` (repo root) **and** `server/.env`. Both files must be kept in sync.
+
+| Variable | Description |
+|---|---|
+| `PORT` | Port the API server listens on |
+| `NODE_ENV` | `development` or `production` |
+| `CLIENT_URL` | URL of the frontend (used for CORS and links in emails) |
+| `LOG_LEVEL` | Pino log level (`info`, `debug`, `warn`, `error`) |
+| `DB_HOST` | PostgreSQL host |
+| `DB_PORT` | PostgreSQL port |
+| `DB_USER` | PostgreSQL username |
+| `DB_PASSWORD` | PostgreSQL password |
+| `DB_NAME` | PostgreSQL database name |
+| `DATABASE_URL` | Full PostgreSQL connection string |
+| `SESSION_SECRET` | Random secret for session signing (min 32 chars in production) |
+| `SESSION_TTL_MINUTES` | Session lifetime in minutes |
+| `APP_BASE_URL` | Public base URL of the app (used in email links) |
+| `COOKIE_SECURE` | Set `true` when serving over HTTPS |
+| `CORS_ORIGINS` | Comma-separated list of allowed browser origins |
+| `UPLOAD_DIR` | Directory for file attachment storage (outside web root) |
+
+> **Never commit `.env` files with real credentials.** Use `.env.example` as the template — it is committed and contains no secrets.
